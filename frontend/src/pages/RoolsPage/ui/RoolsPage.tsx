@@ -1,4 +1,3 @@
-import type { Swiper as SwiperInstance } from 'swiper';
 import { memo, useRef } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
@@ -6,13 +5,13 @@ import 'swiper/css/effect-cards';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
 import './RoolsPage.scss'
-import { EffectCards, Pagination } from 'swiper/modules';
+import { EffectCards, Pagination, Navigation } from 'swiper/modules';
 import cls from './RoolsPage.module.scss'
 import { Button } from '@/shared/ui';
 import Arrow from '@/shared/assets/icons/rools-arrow.png';
 
 export const RoolsPage = memo(() => {
-  const swiperRef = useRef<SwiperInstance | null>(null);
+  const swiperRef = useRef<any>(null);
 
   const handleBack = () => {
     window.history.back();

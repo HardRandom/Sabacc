@@ -17,7 +17,7 @@ interface GameHeaderProps {
 }
 
 export const GameHeader = memo((props: GameHeaderProps) => {
-  const { opponent, isCurentTurn, gameState } = props;
+  const { opponent, isCurentTurn, gameState, ...otherProps } = props;
   const i = gameState?.players[0].playerId == opponent?.id ? 0 : 1;
 
   const mods: Mods = {

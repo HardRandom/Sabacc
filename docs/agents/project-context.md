@@ -1,6 +1,6 @@
 # Контекст Sabacc
 
-Срез локального кода: 2026-10-14. Обновляй этот файл при изменении путей, контрактов,
+Срез локального кода: 2026-09-30. Обновляй этот файл при изменении путей, контрактов,
 интеграций или agent pitfalls. Устройство системы и потоки данных — в
 [architecture.md](../architecture.md); этот файл не заменяет исходный код и требования задачи.
 
@@ -17,7 +17,7 @@
 - GitHub Actions: `CI` (frontend lint) и `PR gate` (формат заголовка PR,
   актуальность относительно `main`). Workflows есть в `.github/workflows/`;
   обязательные checks для merge настраиваются защитой ветки `main`.
-  Frontend lint исправлен локально; статус required check в GitHub не подтверждён.
+  Frontend lint на существующем коде красный и пока не должен быть required.
 
 Инструкции команды: [CONTRIBUTING.md](../../CONTRIBUTING.md).
 Карта how-to: [docs/README.md](../README.md); [README](../../README.md);
@@ -64,7 +64,7 @@ Kessel Sabacc — карточная игра для двух игроков. П
   Пошаговый запуск на сервере: [server-deploy](../how-to/server-deploy.md).
 - Docker-сборка backend запускает `./gradlew bootJar --no-daemon` через wrapper 8.10.1;
   эта задача не запускает тесты, её успех не подтверждает тестирование.
-- Frontend lint проходит локально; результаты и ограничения — в [verification.md](verification.md).
+- Frontend lint на существующем коде красный; см. [verification.md](verification.md).
 
 Правила поведения агента — в [AGENTS.md](../../AGENTS.md), команды —
 в [verification.md](verification.md). Новые обнаруженные баги отделяй от выполненной задачи.

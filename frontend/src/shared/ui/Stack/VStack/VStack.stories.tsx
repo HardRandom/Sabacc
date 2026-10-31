@@ -9,7 +9,7 @@ export default {
   },
 } as Meta<typeof VStack>;
 
-const Template: StoryFn<typeof VStack> = (args) => <VStack {...args} />;
+const Template: StoryFn<typeof VStack> = (args: any) => <VStack {...args} />;
 
 export const Normal = Template.bind({});
 Normal.args = {};

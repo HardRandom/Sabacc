@@ -90,6 +90,11 @@ export const GameTokens = memo((props: GameTokensProps) => {
     sendTurn?.("PLAY_TOKEN", { token: enumValue });
   };
 
+  const getImageByType = (type: TokensTypes) => {
+    const found = tokenData.find(t => t.type === type);
+    return found ? found.image : null;
+  };
+
   return (
     <div className={classNames(cls.controlsContainer, {}, [])}>
       {tokensToRender.map((enumType) => {

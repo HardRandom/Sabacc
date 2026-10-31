@@ -1,6 +1,5 @@
-import type { SendTurn } from '../../model/types/game';
 import { classNames } from '@/shared/lib/classNames/classNames';
-import { memo } from 'react';
+import { memo, ReactNode } from 'react';
 import cls from './GameCardModal.module.scss';
 import { Card, TurnType } from '../../model/types/game';
 import { GameCard, GameCardType } from '@/entities/GameCard';
@@ -8,7 +7,7 @@ import { GameCard, GameCardType } from '@/entities/GameCard';
 interface GameCardModalProps {
   cards: Card[];
   type: GameCardType;
-  sendTurn: SendTurn;
+  sendTurn: any;
 }
 
 export const GameCardModal = memo((props: GameCardModalProps) => {

@@ -9,7 +9,7 @@ export default {
   },
 } as Meta<typeof AppIcon>;
 
-const Template: StoryFn<typeof AppIcon> = (args) => <AppIcon {...args} />;
+const Template: StoryFn<typeof AppIcon> = (args: any) => <AppIcon {...args} />;
 
 export const Normal = Template.bind({});
 Normal.args = {};

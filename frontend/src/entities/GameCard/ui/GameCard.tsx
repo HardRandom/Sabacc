@@ -43,7 +43,7 @@ export interface GameCardProps {
 //   6: cardBlood6,
 // };
 
-const allCards: Record<GameCardType, Record<number, string>> = {
+const allCards: Record<GameCardType, Record<number, any>> = {
   SAND: {
     1: cardSand1,
     2: cardSand2,

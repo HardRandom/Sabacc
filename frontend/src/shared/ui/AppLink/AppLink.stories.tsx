@@ -9,7 +9,7 @@ export default {
   },
 } as Meta<typeof AppLink>;
 
-const Template: StoryFn<typeof AppLink> = (args) => <AppLink {...args} />;
+const Template: StoryFn<typeof AppLink> = (args: any) => <AppLink {...args} />;
 
 export const Normal = Template.bind({});
 Normal.args = {};

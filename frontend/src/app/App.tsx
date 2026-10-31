@@ -18,7 +18,7 @@ const App = () => {
       const user: User = JSON.parse(userData);
       dispatch(setUser(user))
     }
-  }, [dispatch])
+  }, [])
 
   return (
     <div id="app" className={'app'}>

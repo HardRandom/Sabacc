@@ -1,6 +1,5 @@
-import type { GameState } from '../../model/types/game';
-import type { SendTurn } from '../../model/types/game';
-import { memo } from 'react';
+import { classNames } from '@/shared/lib/classNames/classNames';
+import { memo, ReactNode } from 'react';
 import cls from './GameTable.module.scss';
 import { GameCard, GameCardType } from '@/entities/GameCard';
 import { TurnType } from '../../model/types/game';
@@ -8,13 +7,13 @@ import { GameBank } from '../GameBank/GameBank';
 import BackgroundTable from '@/shared/assets/images/table.png'
 
 interface GameTableProps {
-  gameState: GameState;
-  sendTurn: SendTurn;
+  gameState: any;
+  sendTurn: any;
   userId: number;
 }
 
 export const GameTable = memo((props: GameTableProps) => {
-  const { gameState, sendTurn, userId } = props;
+  const { gameState, sendTurn, userId, ...otherProps } = props;
 
   const handleGetSand = () => {
     sendTurn(TurnType.GET_SAND)

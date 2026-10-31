@@ -1,8 +1,7 @@
-import { hasApiErrorCode } from '@/shared/types/error';
 import { ChangeEvent, memo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getRouteGame } from '@/shared/const/router';
-import { Button, HStack } from '@/shared/ui';
+import { AppLink, Button, HStack } from '@/shared/ui';
 import { useCreateAnonymousUserMutation } from '../model/services/authService';
 import cls from './Auth.module.scss';
 import { UserExistsModal } from '@/shared/ui/UsernameModalForm/UserExistsModal';
@@ -44,8 +43,8 @@ export const Auth = memo(() => {
       await createAnonymousUser({ username: inputNameRef.current.value }).unwrap();
       setIsInputOpen(false); // скрываем форму
       navigate(getRouteGame());
-    } catch (error) {
-      if (hasApiErrorCode(error, 'already_exists') && 'status' in error && error.status === 400) {
+    } catch (error: any) {
+      if (error?.status === 400 && error?.data?.errorCode === "already_exists") {
         console.log("такой пользователь уже существует");
         setIsModalOpen(true);
         if (inputNameRef.current) inputNameRef.current.value = "";

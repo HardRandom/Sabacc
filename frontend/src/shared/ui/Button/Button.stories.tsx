@@ -9,7 +9,7 @@ export default {
   },
 } as Meta<typeof Button>;
 
-const Template: StoryFn<typeof Button> = (args) => <Button {...args} />;
+const Template: StoryFn<typeof Button> = (args: any) => <Button {...args} />;
 
 export const Normal = Template.bind({});
 Normal.args = {};
