@@ -24,14 +24,22 @@ export function createReduxStore(
 
   const reducerManager = createReducerManager(rootReducers);
 
+  const middleware = (getDefaultMiddleware: any) =>
+    getDefaultMiddleware().concat(
+      rtkApi.middleware,
+    );
+
   const store = configureStore({
     reducer: reducerManager.reduce as Reducer<StateSchema, Action>,
     devTools: __IS_DEV__,
     preloadedState: initialState,
-    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(rtkApi.middleware),
+    middleware,
   });
 
-  return Object.assign(store, { reducerManager });
+  // @ts-ignore
+  store.reducerManager = reducerManager;
+
+  return store;
 }
 
 export type AppDispatch = ReturnType<typeof createReduxStore>['dispatch'];

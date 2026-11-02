@@ -1,3 +1,4 @@
+import { classNames } from '@/shared/lib/classNames/classNames';
 import { memo } from 'react';
 import cls from './GameResultModal.module.scss';
 import { useSelector } from 'react-redux';

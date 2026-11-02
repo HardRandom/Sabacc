@@ -1,4 +1,3 @@
-import { hasApiErrorCode } from '@/shared/types/error';
 import { ChangeEvent, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getRouteGame } from "@/shared/const/router";
@@ -27,8 +26,8 @@ export const UsernameModalForm = () => {
     try {
       await createAnonymousUser({ username }).unwrap();
       navigate(getRouteGame());
-    } catch (err) {
-      if (hasApiErrorCode(err, 'already_exists')) {
+    } catch (err: any) {
+      if (err?.data?.errorCode === "already_exists") {
         setIsModalOpen(true);
       } else {
         console.error("Неизвестная ошибка:", err);

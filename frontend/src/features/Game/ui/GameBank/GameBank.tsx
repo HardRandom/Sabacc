@@ -1,22 +1,20 @@
-import type { SendTurn } from '../../model/types/game';
 import { classNames } from '@/shared/lib/classNames/classNames';
-import { memo } from 'react';
+import { memo, ReactNode, useEffect } from 'react';
 import cls from './GameBank.module.scss';
 import { GameState } from '../../model/types/game';
 import CreditImg from '@/shared/assets/images/credit.png'
 
 interface GameBankProps {
   gameState: GameState;
-  sendTurn: SendTurn;
+  sendTurn: any;
   userId?: number;
   className?: string
 }
 
 export const GameBank = memo((props: GameBankProps) => {
-  const { gameState, userId, className, sendTurn: _sendTurn, ...otherProps } = props;
-  void _sendTurn;
-  const playerSpentChips = gameState?.players[0].playerId == userId ? gameState.players[0].spentChips : gameState.players[1].spentChips;
-  const oppenentSpentChips = gameState?.players[1].playerId == userId ? gameState.players[0].spentChips : gameState.players[1].spentChips;
+  const { gameState, userId, className, sendTurn, ...otherProps } = props;
+  let playerSpentChips = gameState?.players[0].playerId == userId ? gameState.players[0].spentChips : gameState.players[1].spentChips;
+  let oppenentSpentChips = gameState?.players[1].playerId == userId ? gameState.players[0].spentChips : gameState.players[1].spentChips;
 
   const generateImg = (count: number) => {
     const maxCount = Math.min(count, 3);

@@ -1,8 +1,8 @@
-import { Client, Message } from '@stomp/stompjs';
+import { Message } from '@stomp/stompjs';
 import { useEffect } from 'react';
 
 export const useWebSocketSubscription = (
-  client: Client | null,
+  client: any,
   destination: string,
   callback: (message: Message) => void
 ) => {

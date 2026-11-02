@@ -37,9 +37,9 @@ export const useRoomManager = (playerId: number | null, onRoomJoin: (roomId: num
           roomId = availableRooms[0].id;
         }
       } catch (err) {
-        const error = err as AxiosError<{ errorCode?: string }>;
+        const error = err as AxiosError;
 
-        if (error.response && error.response.data && error.response.data.errorCode === 'have_unfinished_session') {
+        if (error.response && error.response.data && (error.response.data as any).errorCode === 'have_unfinished_session') {
           console.warn('У пользователя есть незавершенная сессия. Выполняем выход из всех комнат...');
           await leaveAllRooms();
           setRetryCount((prev) => prev + 1);

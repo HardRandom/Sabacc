@@ -1,6 +1,5 @@
-import type { SendTurn } from '../../model/types/game';
 import { classNames, Mods } from '@/shared/lib/classNames/classNames';
-import { memo } from 'react';
+import { memo, useCallback, useEffect } from 'react';
 import cls from './GameFooter.module.scss';
 import RoolsImg from '@/shared/assets/images/rules.png'
 import PassImg from '@/shared/assets/images/pass.png'
@@ -20,14 +19,14 @@ interface GameFooterProps {
   user: User;
   isCurentTurn: boolean;
   gameState: GameState;
-  sendTurn: SendTurn;
-  leaveCurrentRoom: () => Promise<void>;
+  sendTurn: any;
+  leaveCurrentRoom: any;
   selectedTokens: TokensTypes[];
-  onPlayToken?: (token: TokensTypes) => void;
+  onPlayToken?: (token: any) => void;
 }
 
 export const GameFooter = memo((props: GameFooterProps) => {
-  const { user, isCurentTurn, gameState, sendTurn, leaveCurrentRoom, onPlayToken } = props;
+  const { user, isCurentTurn, gameState, sendTurn, leaveCurrentRoom, selectedTokens, onPlayToken } = props;
 
   console.log('[GameFooter] selectedTokens prop:', props.selectedTokens);
 

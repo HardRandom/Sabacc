@@ -44,8 +44,8 @@ const authSlice = createSlice({
         state.user = action.payload;
         localStorage.setItem(USER_LOCALSTORAGE_KEY, JSON.stringify(action.payload))
       })
-      .addMatcher(authApi.endpoints.createAnonymousUser.matchRejected, (state, action) => {
-        state.error = action.error.message ?? null;
+      .addMatcher(authApi.endpoints.createAnonymousUser.matchRejected, (state, action: PayloadAction<any>) => {
+        state.error = action.payload;
       })
   },
 });
