@@ -8,4 +8,6 @@ export interface RoomState {
   playerSecond: User | null;
   playerFirstConnected: boolean;
   playerSecondConnected: boolean;
+  playerFirstLeftAt?: string | null;
+  playerSecondLeftAt?: string | null;
 }

@@ -1,6 +1,7 @@
 package ru.ngtu.sabacc.room;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.ngtu.sabacc.user.User;
 
@@ -31,6 +32,18 @@ public class SessionRoomController {
     @GetMapping("/{roomId}/members")
     public List<User> getRoomMembers(@PathVariable Long roomId) {
         return roomService.getSessionMembers(roomId);
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<SessionRoom> activeRoom(@RequestParam Long userId) {
+        return roomService.findReturnableRoom(userId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.noContent().build());
+    }
+
+    @PostMapping("/{roomId}/return")
+    public SessionRoom returnToSession(@PathVariable Long roomId, @RequestParam Long userId) {
+        return roomService.returnToSession(roomId, userId);
     }
 
     @GetMapping("/available-for-join")

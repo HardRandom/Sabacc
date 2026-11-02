@@ -78,6 +78,10 @@ export const GameTokens = memo((props: GameTokensProps) => {
   const tokensToRender: TokensTypes[] = Array.isArray(selectedTokens) ? selectedTokens.slice(0, 3) : [];
 
  const handleTurnToken = (ruName: string) => {
+    if (!isClickable) {
+      return;
+    }
+
     const enumValue = tokenNameToEnum[ruName];
     if (!enumValue) {
       console.error("Нет соответствующего enum для токена:", ruName);
@@ -103,6 +107,7 @@ export const GameTokens = memo((props: GameTokensProps) => {
             className={classNames(cls.cardButton, { [cls.clickable]: isClickable }, [])}
             onClick={() => handleTurnToken(token.name)}
             type="button"
+            disabled={!isClickable}
             aria-label={`${token.name}. ${token.description}`}
           >
             <span className={cls.tokenFace}>

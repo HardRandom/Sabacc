@@ -10,6 +10,10 @@ const STATUSES_WITHOUT_TOKEN_PICK = new Set([
   'PLAYER_DISCONNECTED',
 ]);
 
+const STATUSES_WITHOUT_OPPONENT_TOKEN_WAIT = STATUSES_WITHOUT_TOKEN_PICK;
+
+export const OPPONENT_SELECTING_TOKENS_CAPTION = 'Соперник выбирает жетоны';
+
 // Эти статусы сервер шлёт, когда второй игрок уже в комнате.
 // У создателя локальная копия комнаты часто ещё без playerSecond:
 // сокет обновляет только status.
@@ -21,9 +25,12 @@ const STATUSES_WITH_BOTH_PLAYERS = new Set([
   'PLAYER_RECONNECTED',
 ]);
 
-export const TOKEN_SELECTION_TIMEOUT_MS = 2 * 60 * 1000;
-
-export const TOKEN_SELECTION_TIMEOUT_SEC = TOKEN_SELECTION_TIMEOUT_MS / 1000;
+export {
+  formatSelectionCountdown,
+  remainingSelectionSeconds,
+  TOKEN_SELECTION_TIMEOUT_MS,
+  TOKEN_SELECTION_TIMEOUT_SEC,
+} from '@/shared/lib/countdown/countdown';
 
 // Свободная карта, возврат и растрата — в интерфейсе это
 // «Бесплатный розыгрыш», «Возврат» и «Хищение».
@@ -33,7 +40,7 @@ export const DEFAULT_TOKEN_SELECTION: readonly TokensTypes[] = [
   TokensTypes.EMBEZZLEMENT,
 ];
 
-type TokenStorage = Pick<Storage, 'getItem' | 'setItem'>;
+type TokenStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 export const tokenSelectionKey = (roomId: number | string, playerId: number | string) => (
   `${TOKEN_SELECTION_PREFIX}.${roomId}.${playerId}`
@@ -62,6 +69,18 @@ export function readTokenSelection(
     return parsed as TokensTypes[];
   } catch {
     return null;
+  }
+}
+
+export function clearTokenSelection(
+  roomId: number | string,
+  playerId: number | string,
+  storage: Pick<Storage, 'removeItem'> = sessionStorage,
+) {
+  try {
+    storage.removeItem(tokenSelectionKey(roomId, playerId));
+  } catch {
+    // sessionStorage может быть недоступен в приватном режиме
   }
 }
 
@@ -98,20 +117,19 @@ export function shouldOpenTokenSelection(options: {
   return !STATUSES_WITHOUT_TOKEN_PICK.has(options.status);
 }
 
-export function remainingSelectionSeconds(
-  elapsedMs: number,
-  timeoutMs: number = TOKEN_SELECTION_TIMEOUT_MS,
-): number {
-  if (elapsedMs >= timeoutMs) {
-    return 0;
+export function shouldShowOpponentSelectingTokens(options: {
+  status?: string | null;
+  hasSelectedTokens: boolean;
+  opponentReady: boolean;
+}): boolean {
+  if (!options.hasSelectedTokens || options.opponentReady) {
+    return false;
   }
 
-  return Math.ceil((timeoutMs - elapsedMs) / 1000);
+  if (!options.status || STATUSES_WITHOUT_OPPONENT_TOKEN_WAIT.has(options.status)) {
+    return false;
+  }
+
+  return true;
 }
 
-export function formatSelectionCountdown(totalSeconds: number): string {
-  const safe = Math.max(0, Math.floor(totalSeconds));
-  const minutes = Math.floor(safe / 60);
-  const seconds = safe % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-}

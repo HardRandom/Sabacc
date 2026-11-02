@@ -1,5 +1,6 @@
 import { classNames } from '@/shared/lib/classNames/classNames';
-import { memo, ReactNode, useEffect } from 'react';
+import { CountdownTimer } from '@/shared/ui/CountdownTimer';
+import { memo } from 'react';
 import cls from './GameRoundResultModal.module.scss';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '@/features/Auth';
@@ -10,10 +11,11 @@ import BackgroundTable from '@/shared/assets/images/table_cubes.png'
 interface GameRoundResultModalProps {
   roundResult: any;
   roomState: any;
+  secondsLeft: number;
   onClose: () => void;
 }
 
-export const GameRoundResultModal = memo(({ roundResult, roomState, onClose }: GameRoundResultModalProps) => {
+export const GameRoundResultModal = memo(({ roundResult, roomState, secondsLeft, onClose }: GameRoundResultModalProps) => {
   const user = useSelector(selectCurrentUser);
   const opponent = useOpponent(user?.id, roomState);
 
@@ -28,6 +30,7 @@ export const GameRoundResultModal = memo(({ roundResult, roomState, onClose }: G
         <img src={BackgroundTable} className={cls.background} />
         <div className={cls.content}>
           <div className={cls.title}>РЕЗУЛЬТАТ РАУНДА</div>
+          <CountdownTimer secondsLeft={secondsLeft} caption="на закрытие" />
           <ul className={cls.list}>
             {roundResult.players.map((player: any) => (
               <li key={player.playerId} className={cls.container}>

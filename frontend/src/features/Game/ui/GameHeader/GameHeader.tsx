@@ -3,21 +3,33 @@ import { memo } from 'react';
 import cls from './GameHeader.module.scss';
 import { User } from '@/features/Auth/model/types/auth';
 import { GameState } from '../../model/types/game';
-import { GameTokens } from '../GameTokens/GameTokens';
 import { GameCard, GameCardType } from '@/entities/GameCard';
 import CreditImg from '@/shared/assets/images/credit.png'
 import ArrowTop from '@/shared/assets/icons/arrorTop.png'
-import { TokensTypes } from '../../model/types/game';
+
+const OPPONENT_TOKEN_SLOTS = 3;
 
 interface GameHeaderProps {
   gameState: GameState;
   opponent: User | null;
   isCurentTurn: boolean;
-  selectedTokens: TokensTypes[];
+  tokensLeft: number;
 }
 
+const opponentTokenLabel = (count: number) => {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  const word = mod10 === 1 && mod100 !== 11
+    ? 'жетон'
+    : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)
+      ? 'жетона'
+      : 'жетонов';
+  return `У соперника осталось ${count} ${word}`;
+};
+
 export const GameHeader = memo((props: GameHeaderProps) => {
-  const { opponent, isCurentTurn, gameState, ...otherProps } = props;
+  const { opponent, isCurentTurn, gameState, tokensLeft } = props;
+  const hiddenTokensLeft = Math.max(0, Math.min(OPPONENT_TOKEN_SLOTS, tokensLeft));
   const i = gameState?.players[0].playerId == opponent?.id ? 0 : 1;
 
   const mods: Mods = {
@@ -42,10 +54,11 @@ export const GameHeader = memo((props: GameHeaderProps) => {
       </div>
 
       <div className={cls.controls}>
-        <GameTokens
-        userId={opponent?.id}
-        selectedTokens={[]}
-        />
+        <div className={cls.hiddenTokens} aria-label={opponentTokenLabel(hiddenTokensLeft)}>
+          {Array.from({ length: hiddenTokensLeft }, (_, index) => (
+            <span key={index} className={cls.hiddenToken} />
+          ))}
+        </div>
       </div>
 
 

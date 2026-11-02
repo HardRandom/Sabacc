@@ -1,0 +1,54 @@
+.turnTimer {
+  position: fixed;
+  top: 16px;
+  right: 24px;
+  z-index: 6;
+}
+
+.roomId {
+  position: fixed;
+  top: 16px;
+  left: 24px;
+  z-index: 6;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+}
+
+.waitScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #021028;
+}
+
+.loader {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 24px;
+  color: #ffffff;
+  text-align: center;
+  background: rgba(0, 13, 47, 0.6);
+  padding: 40px 60px;
+  border-radius: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+
+  &::after {
+    content: '';
+    display: block;
+    width: 30px;
+    height: 30px;
+    border: 3px solid #ffffff;
+    border-top: 3px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 20px auto 0 auto;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

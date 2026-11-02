@@ -14,6 +14,8 @@ import ru.ngtu.sabacc.system.exception.session.*;
 import ru.ngtu.sabacc.user.User;
 import ru.ngtu.sabacc.user.UserService;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +30,8 @@ public class SessionRoomService {
     private final ApplicationEventPublisher eventPublisher;
     private final PlatformTransactionManager transactionManager;
     private final Object matchmakingLock = new Object();
+
+    public static final Duration RECONNECT_WINDOW = Duration.ofMinutes(2);
 
     @Transactional(readOnly = true)
     public List<SessionRoom> getAllRooms() {
@@ -126,12 +130,13 @@ public class SessionRoomService {
             }
         }
 
-        SessionRoom newSessionRoom = SessionRoom.builder()
-                .playerFirst(user)
-                .status(SessionRoomStatus.WAITING_SECOND_USER)
-                .build();
-
-        SessionRoom createdSessionRoom = sessionRoomRepository.saveAndFlush(newSessionRoom);
+        Long roomId = smallestFreeId(sessionRoomRepository.findAllIdsOrderById());
+        sessionRoomRepository.insertWithId(
+                roomId,
+                user.getId(),
+                SessionRoomStatus.WAITING_SECOND_USER.name()
+        );
+        SessionRoom createdSessionRoom = getRoomById(roomId);
         log.info("Session room: id={} was created", createdSessionRoom.getId());
 
         eventPublisher.publishEvent(new SessionRoomCreatedEvent(createdSessionRoom));
@@ -185,7 +190,12 @@ public class SessionRoomService {
         }
 
         if (sessionRoom.getStatus().equals(SessionRoomStatus.FINISHED)) {
-            log.info("Комната [{}] уже завершена.", roomId);
+            removePlayerFromFinishedRoom(sessionRoom, userId);
+            return;
+        }
+
+        if (allowsReturn(sessionRoom)) {
+            markPlayerAway(sessionRoom, userId);
             return;
         }
 
@@ -229,6 +239,26 @@ public class SessionRoomService {
 
         // На всякий случай — если пользователь не первый и не второй
         log.warn("User [{}] не найден в комнате [{}] при выходе", userId, roomId);
+    }
+
+    private void removePlayerFromFinishedRoom(SessionRoom sessionRoom, Long userId) {
+        if (sessionRoom.getPlayerFirst() != null && sessionRoom.getPlayerFirst().getId().equals(userId)) {
+            sessionRoom.setPlayerFirst(sessionRoom.getPlayerSecond());
+            sessionRoom.setPlayerFirstConnected(sessionRoom.isPlayerSecondConnected());
+            sessionRoom.setPlayerSecond(null);
+            sessionRoom.setPlayerSecondConnected(false);
+        } else if (sessionRoom.getPlayerSecond() != null && sessionRoom.getPlayerSecond().getId().equals(userId)) {
+            sessionRoom.setPlayerSecond(null);
+            sessionRoom.setPlayerSecondConnected(false);
+        } else {
+            return;
+        }
+
+        if (sessionRoom.getPlayerFirst() == null) {
+            deleteSessionRoom(sessionRoom);
+            return;
+        }
+        sessionRoomRepository.saveAndFlush(sessionRoom);
     }
 
 
@@ -292,19 +322,14 @@ public class SessionRoomService {
             return;
         }
 
-        if(!sessionRoom.isPlayerFirstConnected() && !sessionRoom.isPlayerSecondConnected()) {
-            if (sessionRoom.getStatus() != SessionRoomStatus.FINISHED) {
-                updateSessionStatus(sessionRoom, SessionRoomStatus.FINISHED);
-                sessionRoomRepository.saveAndFlush(sessionRoom);
-                eventPublisher.publishEvent(new SessionFinishedEvent(sessionId));
+        if (sessionRoom.getStatus() == SessionRoomStatus.FINISHED) {
+            if (!sessionRoom.isPlayerFirstConnected() && !sessionRoom.isPlayerSecondConnected()) {
+                deleteSessionRoom(sessionRoom);
             }
             return;
         }
-        if (sessionRoom.getStatus() != SessionRoomStatus.FINISHED && sessionRoom.getStatus() != SessionRoomStatus.PLAYER_DISCONNECTED) {
-            updateSessionStatus(sessionRoom, SessionRoomStatus.PLAYER_DISCONNECTED);
-            sessionRoomRepository.saveAndFlush(sessionRoom);
-            eventPublisher.publishEvent(new PlayerDisconnectedSessionEvent(sessionId, playerId, sessionRoom));
-        }
+
+        markPlayerAway(sessionRoom, playerId);
     }
 
 
@@ -368,6 +393,157 @@ public class SessionRoomService {
             return false;
 
         return secondPlayer.getId().equals(userId);
+    }
+
+    public Optional<SessionRoom> findReturnableRoom(Long userId) {
+        Instant now = Instant.now();
+        return sessionRoomRepository
+                .findByPlayerFirstIdOrPlayerSecondIdAndStatusNot(userId, userId, SessionRoomStatus.FINISHED)
+                .stream()
+                .filter(room -> canStillReturn(room, userId, now))
+                .findFirst();
+    }
+
+    public SessionRoom returnToSession(Long roomId, Long userId) {
+        SessionRoom room = getRoomById(roomId);
+        if (!roomContainsUser(room, userId)) {
+            throw new PlayerNotRelatedToSessionException(roomId, userId);
+        }
+        if (room.getStatus() == SessionRoomStatus.FINISHED || !canStillReturn(room, userId, Instant.now())) {
+            throw new JoinFinishedSessionException(userId, roomId);
+        }
+
+        if (isFirst(room, userId)) {
+            room.setPlayerFirstLeftAt(null);
+            room.setPlayerFirstConnected(true);
+        } else {
+            room.setPlayerSecondLeftAt(null);
+            room.setPlayerSecondConnected(true);
+        }
+
+        boolean otherAway = otherLeftAt(room, userId) != null;
+        if (otherAway) {
+            updateSessionStatus(room, SessionRoomStatus.PLAYER_DISCONNECTED);
+            sessionRoomRepository.saveAndFlush(room);
+            return room;
+        }
+
+        updateSessionStatus(room, SessionRoomStatus.IN_PROGRESS);
+        sessionRoomRepository.saveAndFlush(room);
+        eventPublisher.publishEvent(new PlayerReconnectedSessionEvent(roomId, userId, room));
+        return room;
+    }
+
+    public void expireReconnectWindows() {
+        Instant now = Instant.now();
+        for (SessionRoom room : sessionRoomRepository.findRoomsWithAbsentPlayers()) {
+            expireRoom(room, now);
+        }
+    }
+
+    private void expireRoom(SessionRoom room, Instant now) {
+        if (room.getStatus() == SessionRoomStatus.FINISHED) {
+            return;
+        }
+        Instant firstLeftAt = room.getPlayerFirstLeftAt();
+        Instant secondLeftAt = room.getPlayerSecondLeftAt();
+        boolean firstExpired = expired(firstLeftAt, now);
+        boolean secondExpired = expired(secondLeftAt, now);
+        if (!firstExpired && !secondExpired) {
+            return;
+        }
+
+        if (firstLeftAt != null && secondLeftAt != null) {
+            Instant earlier = firstLeftAt.isBefore(secondLeftAt) ? firstLeftAt : secondLeftAt;
+            if (now.isBefore(earlier.plus(RECONNECT_WINDOW))) {
+                return;
+            }
+            eventPublisher.publishEvent(new SessionFinishedEvent(room.getId()));
+            deleteSessionRoom(room);
+            return;
+        }
+
+        if (room.getPlayerFirst() == null || room.getPlayerSecond() == null) {
+            eventPublisher.publishEvent(new SessionFinishedEvent(room.getId()));
+            deleteSessionRoom(room);
+            return;
+        }
+
+        Long loserId = firstExpired ? room.getPlayerFirst().getId() : room.getPlayerSecond().getId();
+        Long winnerId = firstExpired ? room.getPlayerSecond().getId() : room.getPlayerFirst().getId();
+        User winner = firstExpired ? room.getPlayerSecond() : room.getPlayerFirst();
+        room.setPlayerFirst(winner);
+        room.setPlayerFirstConnected(true);
+        room.setPlayerFirstLeftAt(null);
+        room.setPlayerSecond(null);
+        room.setPlayerSecondConnected(false);
+        room.setPlayerSecondLeftAt(null);
+        updateSessionStatus(room, SessionRoomStatus.FINISHED);
+        sessionRoomRepository.saveAndFlush(room);
+        eventPublisher.publishEvent(new SessionFinishedEvent(room.getId()));
+        eventPublisher.publishEvent(new PlayerLeftSessionEvent(room.getId(), loserId, winnerId));
+    }
+
+    private void markPlayerAway(SessionRoom room, Long userId) {
+        if (isFirst(room, userId)) {
+            if (room.getPlayerFirstLeftAt() == null) {
+                room.setPlayerFirstLeftAt(Instant.now());
+            }
+            room.setPlayerFirstConnected(false);
+        } else if (room.getPlayerSecond() != null && room.getPlayerSecond().getId().equals(userId)) {
+            if (room.getPlayerSecondLeftAt() == null) {
+                room.setPlayerSecondLeftAt(Instant.now());
+            }
+            room.setPlayerSecondConnected(false);
+        } else {
+            return;
+        }
+        updateSessionStatus(room, SessionRoomStatus.PLAYER_DISCONNECTED);
+        sessionRoomRepository.saveAndFlush(room);
+        eventPublisher.publishEvent(new PlayerDisconnectedSessionEvent(room.getId(), userId, room));
+    }
+
+    private boolean allowsReturn(SessionRoom room) {
+        return room.getPlayerSecond() != null
+                && room.getStatus() != SessionRoomStatus.WAITING_SECOND_USER
+                && room.getStatus() != SessionRoomStatus.FINISHED;
+    }
+
+    private boolean canStillReturn(SessionRoom room, Long userId, Instant now) {
+        Instant leftAt = isFirst(room, userId) ? room.getPlayerFirstLeftAt() : room.getPlayerSecondLeftAt();
+        if (leftAt == null) {
+            return true;
+        }
+        return now.isBefore(leftAt.plus(RECONNECT_WINDOW));
+    }
+
+    private Instant otherLeftAt(SessionRoom room, Long userId) {
+        return isFirst(room, userId) ? room.getPlayerSecondLeftAt() : room.getPlayerFirstLeftAt();
+    }
+
+    private boolean isFirst(SessionRoom room, Long userId) {
+        return room.getPlayerFirst() != null && room.getPlayerFirst().getId().equals(userId);
+    }
+
+    private boolean expired(Instant leftAt, Instant now) {
+        return leftAt != null && !now.isBefore(leftAt.plus(RECONNECT_WINDOW));
+    }
+
+    static long smallestFreeId(List<Long> usedIds) {
+        long candidate = 1L;
+        if (usedIds == null) {
+            return candidate;
+        }
+        List<Long> sorted = usedIds.stream().filter(id -> id != null && id > 0).sorted().toList();
+        for (Long id : sorted) {
+            if (id > candidate) {
+                return candidate;
+            }
+            if (id == candidate) {
+                candidate++;
+            }
+        }
+        return candidate;
     }
 
     private void updateSessionStatus(SessionRoom sessionRoom, SessionRoomStatus newStatus) {

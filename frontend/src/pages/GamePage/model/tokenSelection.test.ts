@@ -3,19 +3,25 @@ import { TokensTypes } from '@/features/Game/model/types/game';
 import {
   DEFAULT_TOKEN_SELECTION,
   formatSelectionCountdown,
+  clearTokenSelection,
   readTokenSelection,
   remainingSelectionSeconds,
   saveTokenSelection,
+  OPPONENT_SELECTING_TOKENS_CAPTION,
   shouldOpenTokenSelection,
+  shouldShowOpponentSelectingTokens,
   TOKEN_SELECTION_TIMEOUT_SEC,
 } from './tokenSelection';
 
-function memoryStorage(): Pick<Storage, 'getItem' | 'setItem'> {
+function memoryStorage(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> {
   const items = new Map<string, string>();
   return {
     getItem: (key) => items.get(key) ?? null,
     setItem: (key, value) => {
       items.set(key, value);
+    },
+    removeItem: (key) => {
+      items.delete(key);
     },
   };
 }
@@ -94,6 +100,45 @@ describe('shouldOpenTokenSelection', () => {
   });
 });
 
+describe('opponent token selection caption', () => {
+  test('shows the caption only while the opponent has not confirmed', () => {
+    expect(OPPONENT_SELECTING_TOKENS_CAPTION).toBe('Соперник выбирает жетоны');
+    expect(shouldShowOpponentSelectingTokens({
+      status: 'IN_PROGRESS',
+      hasSelectedTokens: true,
+      opponentReady: false,
+    })).toBe(true);
+    expect(shouldShowOpponentSelectingTokens({
+      status: 'ALL_USERS_JOINED',
+      hasSelectedTokens: true,
+      opponentReady: false,
+    })).toBe(true);
+  });
+
+  test('hides the caption before the local choice and after the opponent confirms', () => {
+    expect(shouldShowOpponentSelectingTokens({
+      status: 'IN_PROGRESS',
+      hasSelectedTokens: false,
+      opponentReady: false,
+    })).toBe(false);
+    expect(shouldShowOpponentSelectingTokens({
+      status: 'IN_PROGRESS',
+      hasSelectedTokens: true,
+      opponentReady: true,
+    })).toBe(false);
+    expect(shouldShowOpponentSelectingTokens({
+      status: 'WAITING_SECOND_USER',
+      hasSelectedTokens: true,
+      opponentReady: false,
+    })).toBe(false);
+    expect(shouldShowOpponentSelectingTokens({
+      status: 'FINISHED',
+      hasSelectedTokens: true,
+      opponentReady: false,
+    })).toBe(false);
+  });
+});
+
 describe('token selection countdown', () => {
   test('starts at two minutes and reaches zero at the deadline', () => {
     expect(TOKEN_SELECTION_TIMEOUT_SEC).toBe(120);
@@ -131,6 +176,16 @@ describe('token selection storage', () => {
     expect(readTokenSelection(12, 7, storage)).toEqual(tokens);
     expect(readTokenSelection(12, 8, storage)).toBeNull();
     expect(readTokenSelection(13, 7, storage)).toBeNull();
+  });
+
+  test('forgets the choice after the player leaves the room', () => {
+    const storage = memoryStorage();
+    const tokens = [TokensTypes.IMMUNITY, TokensTypes.EMBARGO, TokensTypes.NO_TAX];
+
+    saveTokenSelection(21, 7, tokens, storage);
+    clearTokenSelection(21, 7, storage);
+
+    expect(readTokenSelection(21, 7, storage)).toBeNull();
   });
 
   test('ignores a stored value that is not three known tokens', () => {

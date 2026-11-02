@@ -654,6 +654,34 @@ class GameSession(
             ))
         }
 
+        val handsTied = players.values
+            .map { it.handRating }
+            .distinct()
+            .size == 1 && players.size > 1
+
+        if (handsTied) {
+            for (player in players.values) {
+                player.remainChips += player.spentChips
+            }
+            logger.debug { "Session $sessionId: Round $round is a draw. Both players keep their round banks" }
+            CompletableFuture.runAsync {
+                TimeUnit.SECONDS.sleep(1)
+                gameMessageExchanger.sendRoundResults(
+                    GameRoundDto(round, players.values.toList()), this
+                )
+                TimeUnit.SECONDS.sleep(1)
+                players.values.forEach { it.spentChips = 0 }
+                if (players.values.all { it.remainChips == 0 }) {
+                    gameMessageExchanger.sendGameFinished(
+                        GameFinishDto(sessionId, null, true), this
+                    )
+                } else {
+                    nextRound()
+                }
+            }
+            return
+        }
+
         // Collect taxes
         val winner = playersSortedByRating.first()
         val winnerId = players.keys.find { players[it] == winner }!!
@@ -685,8 +713,14 @@ class GameSession(
             winner.spentChips = 0
             looser.spentChips = 0
 
-            // Show the winner
-            if (looser.remainChips == 0) {
+            // Show the winner. Если фишек не осталось у обоих, победителя нет.
+            if (players.values.all { it.remainChips == 0 }) {
+                logger.debug { "Session $sessionId: Round $round. Both players are out, the game is a draw" }
+                gameMessageExchanger.sendGameFinished(
+                    GameFinishDto(sessionId, null, true), this
+                )
+            }
+            else if (looser.remainChips == 0) {
                 logger.debug { "Session $sessionId: Round $round. Player ${looser.playerId} has been eliminated, session finished" }
 
                 gameMessageExchanger.sendGameFinished(

@@ -11,6 +11,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import ru.ngtu.sabacc.system.event.PlayerDisconnectedSessionEvent;
+import ru.ngtu.sabacc.system.event.PlayerLeftSessionEvent;
 import ru.ngtu.sabacc.system.event.PlayerReconnectedSessionEvent;
 import ru.ngtu.sabacc.system.event.SessionFinishedEvent;
 import ru.ngtu.sabacc.system.event.SessionReadyEvent;
@@ -21,6 +22,8 @@ import ru.ngtu.sabacc.system.exception.session.SecondPlayerIsNotJoinedException;
 import ru.ngtu.sabacc.user.User;
 import ru.ngtu.sabacc.user.UserService;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -94,6 +98,31 @@ class SessionRoomServiceTest {
                 .filter(room -> room.getStatus() == SessionRoomStatus.WAITING_SECOND_USER)
                 .filter(room -> room.getPlayerSecond() == null)
                 .toList());
+        lenient().when(sessionRoomRepository.findAllIdsOrderById()).thenAnswer(invocation ->
+                rooms.keySet().stream().sorted().toList());
+        lenient().when(sessionRoomRepository.findRoomsWithAbsentPlayers()).thenAnswer(invocation ->
+                rooms.values().stream()
+                        .filter(room -> room.getPlayerFirstLeftAt() != null || room.getPlayerSecondLeftAt() != null)
+                        .toList());
+        lenient().doAnswer(invocation -> {
+            SessionRoom deleted = invocation.getArgument(0);
+            if (deleted.getId() != null) {
+                rooms.remove(deleted.getId());
+            }
+            return null;
+        }).when(sessionRoomRepository).delete(any(SessionRoom.class));
+        lenient().doAnswer(invocation -> {
+            Long id = invocation.getArgument(0);
+            Long playerId = invocation.getArgument(1);
+            String status = invocation.getArgument(2);
+            SessionRoom room = SessionRoom.builder()
+                    .playerFirst(userService.getUserById(playerId))
+                    .status(SessionRoomStatus.valueOf(status))
+                    .build();
+            room.setId(id);
+            rooms.put(id, room);
+            return null;
+        }).when(sessionRoomRepository).insertWithId(anyLong(), anyLong(), any());
     }
 
     @Test
@@ -248,6 +277,75 @@ class SessionRoomServiceTest {
 
         assertThat(room.getStatus()).isEqualTo(SessionRoomStatus.ALL_USERS_CONNECTED);
         verify(eventPublisher, times(1)).publishEvent(any(SessionReadyEvent.class));
+    }
+
+    @Test
+    @DisplayName("Выход из партии открывает окно возврата и не удаляет комнату сразу")
+    void leaveOpensReturnWindowUntilTheEarlierTimerExpires() {
+        SessionRoom room = seatBothAndConnect();
+        room.setStatus(SessionRoomStatus.IN_PROGRESS);
+
+        service.leaveRoom(room.getId(), guest.getId());
+        service.leaveRoom(room.getId(), host.getId());
+
+        assertThat(rooms).containsKey(room.getId());
+        assertThat(room.getPlayerFirstLeftAt()).isNotNull();
+        assertThat(room.getPlayerSecondLeftAt()).isNotNull();
+
+        room.setPlayerSecondLeftAt(Instant.now().minus(3, ChronoUnit.MINUTES));
+        room.setPlayerFirstLeftAt(Instant.now().minus(1, ChronoUnit.MINUTES));
+        service.expireReconnectWindows();
+
+        assertThat(rooms).doesNotContainKey(room.getId());
+    }
+
+    @Test
+    @DisplayName("Если вышедший не вернулся, оставшийся побеждает")
+    void absentPlayerLosesWhenReturnWindowExpires() {
+        SessionRoom room = seatBothAndConnect();
+        room.setStatus(SessionRoomStatus.IN_PROGRESS);
+
+        service.leaveRoom(room.getId(), guest.getId());
+        room.setPlayerSecondLeftAt(Instant.now().minus(3, ChronoUnit.MINUTES));
+        service.expireReconnectWindows();
+
+        assertThat(room.getStatus()).isEqualTo(SessionRoomStatus.FINISHED);
+        assertThat(room.getPlayerFirst().getId()).isEqualTo(host.getId());
+        assertThat(room.getPlayerSecond()).isNull();
+        verify(eventPublisher).publishEvent(any(PlayerLeftSessionEvent.class));
+    }
+
+    @Test
+    @DisplayName("Когда из завершённой партии вышли оба, комната удаляется")
+    void bothPlayersLeavingFinishedRoomDeletesIt() {
+        SessionRoom room = seatBothAndConnect();
+        room.setStatus(SessionRoomStatus.FINISHED);
+
+        service.leaveRoom(room.getId(), guest.getId());
+
+        assertThat(rooms).containsKey(room.getId());
+        assertThat(room.getPlayerSecond()).isNull();
+
+        service.leaveRoom(room.getId(), host.getId());
+
+        assertThat(rooms).doesNotContainKey(room.getId());
+        verify(sessionRoomRepository).delete(room);
+    }
+
+    @Test
+    @DisplayName("Новая комната получает наименьший свободный номер, начиная с 1")
+    void newRoomTakesSmallestFreeId() {
+        assertThat(SessionRoomService.smallestFreeId(List.of())).isEqualTo(1L);
+        assertThat(SessionRoomService.smallestFreeId(List.of(1L, 2L, 3L))).isEqualTo(4L);
+        assertThat(SessionRoomService.smallestFreeId(List.of(1L, 3L))).isEqualTo(2L);
+        assertThat(SessionRoomService.smallestFreeId(List.of(2L, 3L))).isEqualTo(1L);
+
+        SessionRoom first = service.createSessionRoom(host.getId());
+        assertThat(first.getId()).isEqualTo(1L);
+
+        rooms.remove(first.getId());
+        SessionRoom reused = service.createSessionRoom(guest.getId());
+        assertThat(reused.getId()).isEqualTo(1L);
     }
 
     @Test

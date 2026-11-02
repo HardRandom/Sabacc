@@ -65,7 +65,8 @@ export const GameFooter = memo((props: GameFooterProps) => {
         <GameTokens
         userId={user?.id}
         selectedTokens={props.selectedTokens}
-        isClickable sendTurn={sendTurn}
+        isClickable={isCurentTurn}
+        sendTurn={sendTurn}
         onPlayToken={onPlayToken}
         />
       </div>
