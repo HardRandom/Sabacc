@@ -7,13 +7,16 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '@/features/Auth';
 import { TokensTypes } from "@/features/Game/model/types/game";
+import { CountdownTimer } from '@/shared/ui/CountdownTimer';
 import {
+  clearTokenSelection,
   DEFAULT_TOKEN_SELECTION,
-  formatSelectionCountdown,
+  OPPONENT_SELECTING_TOKENS_CAPTION,
   readTokenSelection,
   remainingSelectionSeconds,
   saveTokenSelection,
   shouldOpenTokenSelection,
+  shouldShowOpponentSelectingTokens,
   TOKEN_SELECTION_TIMEOUT_SEC,
 } from '../model/tokenSelection';
 
@@ -47,6 +50,7 @@ const GamePage = () => {
     diceDetails,
     handleDiceSelection,
     winnerId,
+    gameDraw,
     roundResult,
     leaveCurrentRoom,
     fetchGameState,
@@ -78,12 +82,15 @@ const [usedTokens, setUsedTokens] = useState<TokensTypes[]>([]);
 
   const [myTokens, setMyTokens] = useState<TokensTypes[]>([]);
   const [hasSelectedTokens, setHasSelectedTokens] = useState<boolean>(false);
+  const [awaitingOpponentTokens, setAwaitingOpponentTokens] = useState(false);
+  const [opponentReady, setOpponentReady] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectionSecondsLeft, setSelectionSecondsLeft] = useState(TOKEN_SELECTION_TIMEOUT_SEC);
   const [flippedTokens, setFlippedTokens] = useState<string[]>([]);
   const selectionSettledRef = useRef(false);
   const confirmTokensRef = useRef<(tokens: TokensTypes[]) => void>(() => {});
+  const opponentReplyRef = useRef(false);
 
 
     useEffect(() => {
@@ -139,10 +146,78 @@ const [usedTokens, setUsedTokens] = useState<TokensTypes[]>([]);
     }
     setMyTokens(tokens);
     setHasSelectedTokens(true);
+    setAwaitingOpponentTokens(true);
     setIsModalOpen(false);
   };
 
   confirmTokensRef.current = handleSelectTokens;
+
+  useEffect(() => {
+    setOpponentReady(false);
+    setAwaitingOpponentTokens(false);
+    opponentReplyRef.current = false;
+  }, [roomState?.id]);
+
+  useEffect(() => {
+    if (!client || roomState?.id == null || playerId == null) {
+      return undefined;
+    }
+
+    const destination = `/topic/session/${roomState.id}/token-selection`;
+    let subscription: { unsubscribe: () => void } | null = null;
+    let stopped = false;
+
+    const publishReady = () => {
+      if (stopped || !hasSelectedTokens || !client.connected) {
+        return;
+      }
+      client.publish({
+        destination,
+        body: JSON.stringify({ playerId }),
+      });
+    };
+
+    const handleMessage = (message: { body: string }) => {
+      let senderId: unknown;
+      try {
+        senderId = JSON.parse(message.body)?.playerId;
+      } catch {
+        return;
+      }
+      if (senderId == null || String(senderId) === String(playerId)) {
+        return;
+      }
+
+      setOpponentReady(true);
+      setAwaitingOpponentTokens(false);
+      if (!hasSelectedTokens || opponentReplyRef.current || !client.connected) {
+        return;
+      }
+      opponentReplyRef.current = true;
+      publishReady();
+    };
+
+    const listen = () => {
+      if (stopped || !client.connected || subscription) {
+        return;
+      }
+      subscription = client.subscribe(destination, handleMessage);
+      publishReady();
+    };
+
+    listen();
+    const previousOnConnect = client.onConnect;
+    client.onConnect = (frame) => {
+      previousOnConnect?.(frame);
+      listen();
+    };
+
+    return () => {
+      stopped = true;
+      subscription?.unsubscribe();
+      client.onConnect = previousOnConnect;
+    };
+  }, [client, hasSelectedTokens, playerId, roomState?.id]);
 
   useEffect(() => {
     if (!isModalOpen || hasSelectedTokens) {
@@ -361,15 +436,21 @@ const tokenNameToEnum: Record<string, TokensTypes> = {
 };
 
 
+  if (
+    client
+    && roomState
+    && shouldShowOpponentSelectingTokens({
+      status: roomState.status,
+      hasSelectedTokens: awaitingOpponentTokens,
+      opponentReady,
+    })
+  ) {
+    loader = <div className={classNames(cls.loader, {}, [])}>{OPPONENT_SELECTING_TOKENS_CAPTION}</div>;
+  }
+
   return (
       <div className={classNames(cls.game, {}, [])}>
         {/* Отображаем ID комнаты, если он есть */}
-        {roomState?.id && (
-          <div className={cls.roomId}>
-            ID Комнаты: {roomState.id}
-          </div>
-        )}
-
         {loader ? (
           loader
         ) : (
@@ -380,8 +461,18 @@ const tokenNameToEnum: Record<string, TokensTypes> = {
             diceDetails={diceDetails}
             handleDiceSelection={handleDiceSelection}
             winnerId={winnerId}
+            gameDraw={gameDraw}
             roundResult={roundResult}
             leaveCurrentRoom={leaveCurrentRoom}
+            finishLeave={() => {
+              if (roomState?.id != null && playerId != null) {
+                clearTokenSelection(roomState.id, playerId);
+              }
+              setAwaitingOpponentTokens(false);
+              setOpponentReady(false);
+              setHasSelectedTokens(false);
+              return leaveCurrentRoom();
+            }}
             fetchGameState={fetchGameState}
 
             myTokens={myTokens.filter(t => !usedTokens.includes(t))}
@@ -400,17 +491,7 @@ const tokenNameToEnum: Record<string, TokensTypes> = {
             <div className={cls.tokenModal}>
               <div className={cls.modalHeader}>
                 <h2>Выберите жетоны для игры</h2>
-                <div className={cls.selectionTimer}>
-                  <div
-                    className={classNames(cls.timerRing, {
-                      [cls.timerUrgent]: selectionSecondsLeft <= 30,
-                    })}
-                    style={{ ['--progress' as string]: `${(selectionSecondsLeft / TOKEN_SELECTION_TIMEOUT_SEC) * 100}%` }}
-                  >
-                    <span className={cls.timerValue}>{formatSelectionCountdown(selectionSecondsLeft)}</span>
-                  </div>
-                  <span className={cls.timerCaption}>на выбор</span>
-                </div>
+                <CountdownTimer secondsLeft={selectionSecondsLeft} caption="на выбор" />
                 <div className={cls.selectionCounter}>
                   Выбрано: {myTokens.length}/3
                 </div>

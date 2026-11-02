@@ -1,6 +1,7 @@
-import { memo, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import axios from 'axios';
 import { selectCurrentUser, Auth } from '@/features/Auth';
 import { getRouteGame, getRouteRools } from '@/shared/const/router';
 import { classNames } from '@/shared/lib/classNames/classNames';
@@ -21,6 +22,35 @@ export const MainMenu = memo((props: MainMenuProps) => {
   const [selectedAvatar, setSelectedAvatar] = useState<string>(getInitialAvatar);
   const navigate = useNavigate();
   const user = useSelector(selectCurrentUser);
+  const [returnRoomId, setReturnRoomId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setReturnRoomId(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const response = await axios.get(`/api/v1/room/active?userId=${user.id}`);
+        if (!cancelled) {
+          setReturnRoomId(response.status === 204 ? null : response.data?.id ?? null);
+        }
+      } catch {
+        if (!cancelled) {
+          setReturnRoomId(null);
+        }
+      }
+    };
+
+    load();
+    const timer = window.setInterval(load, 2000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [user?.id]);
 
   const handleOpen = () => {
     if (user) {
@@ -28,6 +58,14 @@ export const MainMenu = memo((props: MainMenuProps) => {
     } else {
       setIsOpen(true);
     }
+  };
+
+  const handleReturn = () => {
+    if (!returnRoomId) {
+      return;
+    }
+    localStorage.setItem('roomId', String(returnRoomId));
+    navigate(getRouteGame());
   };
 
   const handleClose = () => setIsOpen(false);
@@ -77,8 +115,8 @@ export const MainMenu = memo((props: MainMenuProps) => {
       )}
 
       {/* Кнопки "Играть" и "Правила" */}
-      <Button variant="btn" onClick={handleOpen}>
-        Играть
+      <Button variant="btn" onClick={returnRoomId ? handleReturn : handleOpen}>
+        {returnRoomId ? 'Вернуться' : 'Играть'}
       </Button>
 
       <div className={cls.btns}>

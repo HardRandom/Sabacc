@@ -89,7 +89,11 @@ public class GameSessionService {
         Long sessionId = event.sessionId();
         Long playerId = event.playerId();
         log.info("Pausing session [{}] due to player [{}] disconnect", sessionId, playerId);
-        pauseSession(sessionId);
+        try {
+            pauseSession(sessionId);
+        } catch (GameSessionNotFoundException ex) {
+            log.info("Session [{}] is not in memory, skip pause", sessionId);
+        }
         socketMessageSender.sendMessageSessionBroadcast(
                 sessionId,
                 WS_GAME_PROGRESS_QUEUE,
@@ -106,7 +110,11 @@ public class GameSessionService {
         Long sessionId = event.sessionId();
         Long playerId = event.playerId();
         log.info("Continuing session [{}] due to player [{}] reconnect", sessionId, playerId);
-        unpauseSession(sessionId);
+        try {
+            unpauseSession(sessionId);
+        } catch (GameSessionNotFoundException ex) {
+            log.info("Session [{}] is not in memory, skip unpause", sessionId);
+        }
         socketMessageSender.sendMessageSessionBroadcast(
                 sessionId,
                 WS_GAME_PROGRESS_QUEUE,

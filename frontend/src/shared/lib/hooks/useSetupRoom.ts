@@ -71,6 +71,17 @@ const claimRoom = async (playerId: number, roomId: string | number): Promise<num
   }
 };
 
+const resumeRoom = async (playerId: number, roomId: number) => {
+  try {
+    await axios.post(`${API_BASE}/${roomId}/return?userId=${playerId}`);
+    return true;
+  } catch (error) {
+    console.warn('Не удалось вернуться в партию', error);
+    localStorage.removeItem('roomId');
+    return false;
+  }
+};
+
 const rememberRoom = (roomId: number) => {
   localStorage.setItem('roomId', String(roomId));
   return roomId;
@@ -81,7 +92,7 @@ export async function setupSessionRoom(playerId: number): Promise<number | undef
   if (requestedRoomId) {
     localStorage.removeItem('redirectAfterLogin');
     const claimed = await claimRoom(playerId, requestedRoomId);
-    if (claimed !== undefined) {
+    if (claimed !== undefined && await resumeRoom(playerId, claimed)) {
       return rememberRoom(claimed);
     }
   }
@@ -89,7 +100,7 @@ export async function setupSessionRoom(playerId: number): Promise<number | undef
   const storedRoomId = localStorage.getItem('roomId');
   if (storedRoomId) {
     const resumed = await claimRoom(playerId, storedRoomId);
-    if (resumed !== undefined) {
+    if (resumed !== undefined && await resumeRoom(playerId, resumed)) {
       return rememberRoom(resumed);
     }
     localStorage.removeItem('roomId');

@@ -16,6 +16,7 @@ export const useGameState = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [diceDetails, setDiceDetails] = useState(null);
   const [winnerId, setWinnerId] = useState();
+  const [gameDraw, setGameDraw] = useState(false);
   const [roundResult, setRoundResult] = useState();
 
   // Получаем состояние комнаты
@@ -127,7 +128,8 @@ export const useGameState = () => {
         // Результаты игры
         client.subscribe(`/queue/session/${sessionId}/game-results`, (message) => {
           const data = JSON.parse(message.body);
-          setWinnerId(data.winnerId);
+          setGameDraw(Boolean(data.draw));
+          setWinnerId(data.draw ? undefined : data.winnerId);
           localStorage.removeItem('roomId');
           console.log('[INFO] Игра завершена — roomId удалён из localStorage по событию game-results');
         });
@@ -182,7 +184,8 @@ export const useGameState = () => {
     diceDetails,
     handleDiceSelection,
     winnerId,
+    gameDraw,
     roundResult,
-    leaveCurrentRoom
+    leaveCurrentRoom,
   };
 };

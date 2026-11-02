@@ -120,6 +120,10 @@ const roomApi = vi.hoisted(() => {
         return Promise.resolve({ data: cloneRoom(room) });
       }
 
+      if (parsed.pathname.endsWith('/return')) {
+        return Promise.resolve({ data: null });
+      }
+
       const joinMatch = parsed.pathname.match(/\/(\d+)\/join$/);
       if (joinMatch) {
         if (failJoin) {
