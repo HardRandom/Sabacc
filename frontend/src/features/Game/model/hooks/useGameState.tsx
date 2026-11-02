@@ -108,7 +108,7 @@ export const useGameState = () => {
           const data = JSON.parse(message.body);
           console.log('[WS] Получен статус игры:', data.status);
           setRoomState((prev: any) => ({ ...prev, status: data.status }));
-          //fetchRoomState(sessionId);
+          fetchRoomState(sessionId);
           fetchGameState(sessionId);
         });
 

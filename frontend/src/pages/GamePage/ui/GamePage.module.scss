@@ -79,7 +79,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  gap: 16px;
+  margin-bottom: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   padding-bottom: 15px;
 }
@@ -88,13 +89,69 @@
   margin: 0;
   font-size: 28px;
   color: #FFFFFF;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .selectionCounter {
   font-size: 20px;
   font-weight: bold;
   color: #4FC3F7;
-  margin: 0 20px;
+  margin: 0;
+}
+
+.selectionTimer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.timerRing {
+  --progress: 100%;
+
+  width: 72px;
+  height: 72px;
+  min-width: 72px;
+  min-height: 72px;
+  flex: 0 0 72px;
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(#4fc3f7 var(--progress), rgba(255, 255, 255, 0.18) 0);
+}
+
+.timerUrgent {
+  background: conic-gradient(#ff8a65 var(--progress), rgba(255, 255, 255, 0.18) 0);
+}
+
+.timerValue {
+  width: 58px;
+  height: 58px;
+  min-width: 58px;
+  min-height: 58px;
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: #000d2f;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.timerCaption {
+  font-size: 14px;
+  color: #dbd79e;
+}
+
+.timerHint {
+  margin: 0 0 24px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
 }
 
 .closeButton {

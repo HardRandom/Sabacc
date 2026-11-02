@@ -28,19 +28,19 @@ interface GameTokensProps {
 }
 
 const tokenData = [
-  { type: "Бесплатный розыгрыш", image: noTax },
-  { type: "Возврат", image: takeTwoChips },
-  { type: "Общий тариф", image: generalTariff },
-  { type: "Доп возврат", image: extraRefund },
-  { type: "Хищение", image: eblazement },
-  { type: "Общий аудит", image: generalAudit },
-  { type: "Иммунитет", image: immunity },
-  { type: "Истощение", image: exinasion },
-  { type: "Прямая транзакция", image: directTransaction },
-  { type: "Крупное мошенничество", image: imposter },
-  { type: "Уценка", image: ucenka },
-  { type: "Готовьте книги", image: books },
-  { type: "Эмбарго", image: embargo },
+  { type: "Бесплатный розыгрыш", image: noTax, description: "Вы не уплачиваете налог в этом ходе" },
+  { type: "Возврат", image: takeTwoChips, description: "Верните 2 фишки" },
+  { type: "Общий тариф", image: generalTariff, description: "С противника взимается налог 1 фишка" },
+  { type: "Доп возврат", image: extraRefund, description: "Верните 3 фишки, выплаченные в этом раунде" },
+  { type: "Хищение", image: eblazement, description: "Заберите 1 фишку из банка соперника в свой банк" },
+  { type: "Общий аудит", image: generalAudit, description: "Соперник облагается налогом в 2 фишки, если он спасовал в этом ходе" },
+  { type: "Иммунитет", image: immunity, description: "Предотвращает срабатывание жетонов против вас до следующего раунда" },
+  { type: "Истощение", image: exinasion, description: "Противник должен сбросить карты и взять новую комбинацию из закрытой колоды" },
+  { type: "Прямая транзакция", image: directTransaction, description: "Противник меняется с вами картами" },
+  { type: "Крупное мошенничество", image: imposter, description: "Установить значение самозванца равным 6 до следующего вскрытия" },
+  { type: "Уценка", image: ucenka, description: "Установить значение Sylop равным 0 до следующего вскрытия" },
+  { type: "Готовьте книги", image: books, description: "Инвертируйте ранги Sabacc до следующего вскрытия" },
+  { type: "Эмбарго", image: embargo, description: "Противник в следующем ходе пасует" },
 ];
 
 
@@ -64,7 +64,8 @@ const tokenNameToEnum: Record<string, TokensTypes> = {
 const tokens = tokenData.map(t => ({
   name: t.type,
   image: t.image,
-  type: tokenNameToEnum[t.type], // ← теперь это TokensTypes
+  description: t.description,
+  type: tokenNameToEnum[t.type],
 }));
 
 
@@ -90,11 +91,6 @@ export const GameTokens = memo((props: GameTokensProps) => {
     sendTurn?.("PLAY_TOKEN", { token: enumValue });
   };
 
-  const getImageByType = (type: TokensTypes) => {
-    const found = tokenData.find(t => t.type === type);
-    return found ? found.image : null;
-  };
-
   return (
     <div className={classNames(cls.controlsContainer, {}, [])}>
       {tokensToRender.map((enumType) => {
@@ -105,12 +101,17 @@ export const GameTokens = memo((props: GameTokensProps) => {
           <button
             key={String(enumType)}
             className={classNames(cls.cardButton, { [cls.clickable]: isClickable }, [])}
-            onClick={() => handleTurnToken(token.name)} // ← теперь строка для tokenNameToEnum
+            onClick={() => handleTurnToken(token.name)}
             type="button"
-            aria-label={`token-${token.name}`}
-            title={token.name}
+            aria-label={`${token.name}. ${token.description}`}
           >
-            <img src={token.image} alt={token.name} />
+            <span className={cls.tokenFace}>
+              <img src={token.image} alt="" />
+            </span>
+            <span className={cls.tokenHint} role="tooltip">
+              <span className={cls.tokenHintName}>{token.name}</span>
+              <span className={cls.tokenHintText}>{token.description}</span>
+            </span>
           </button>
         );
       })}
