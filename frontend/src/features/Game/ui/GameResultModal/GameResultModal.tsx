@@ -26,6 +26,11 @@ export const GameResultModal = memo(({ winnerId, onClose }: GameResultModalProps
           <div className={cls.resultText}>
             {isWinner ? 'ПОБЕДА!' : 'ПРОИГРЫШ'}
           </div>
+          {!isWinner && (
+            <div className={cls.timeoutMessage}>
+              Противник не сделал ход в течение 2 минут
+            </div>
+          )}
           <button className={cls.closeButton} onClick={onClose}>
             ЗАКРЫТЬ
           </button>

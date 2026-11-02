@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '@/features/Auth/model/selectors/authSelector';
 import { useWebSocketGame } from '@/shared/lib/hooks/useWebSocketGame';
@@ -17,6 +17,7 @@ export const useGameState = () => {
   const [diceDetails, setDiceDetails] = useState(null);
   const [winnerId, setWinnerId] = useState();
   const [roundResult, setRoundResult] = useState();
+  const [playerTurnTimeout, setPlayerTurnTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Получаем состояние комнаты
   const fetchRoomState = async (id?: string | number) => {
@@ -120,6 +121,12 @@ export const useGameState = () => {
           } else {
             showDiceModal(null);
           }
+          
+          // Сброс таймера при получении хода
+          if (playerTurnTimeout) {
+            clearTimeout(playerTurnTimeout);
+            setPlayerTurnTimeout(null);
+          }
           fetchGameState(sessionId);
           fetchRoomState(sessionId);
         });
@@ -158,6 +165,12 @@ export const useGameState = () => {
       setRoomState(null);
       setDiceDetails(null);
       localStorage.removeItem('roomId');
+      
+      // Очистка таймера при завершении игры
+      if (playerTurnTimeout) {
+        clearTimeout(playerTurnTimeout);
+        setPlayerTurnTimeout(null);
+      }
     }
   }, [roomState?.status]);
 
@@ -171,6 +184,53 @@ export const useGameState = () => {
       status !== GameStatus.FINISHED
     );
   };
+
+  // Запуск таймера при изменении gameState и наличии активной игры
+  useEffect(() => {
+    if (gameState && playerId) {
+      const currentPlayerId = gameState.currentPlayerId;
+      
+      // Если текущий игрок - это наш пользователь, запустить таймер
+      if (currentPlayerId === playerId) {
+        console.log('[TIMER] Таймер запущен для игрока ID:', playerId);
+        
+        // Сброс существующего таймера если есть
+        if (playerTurnTimeout) {
+          clearTimeout(playerTurnTimeout);
+          setPlayerTurnTimeout(null);
+        }
+        
+        // Запуск нового таймера на 2 минуты
+        const timeout = setTimeout(() => {
+          console.log('[TIMER] Время вышло для игрока ID:', playerId);
+          
+          // Отправляем автоматическую победу второму игроку
+          if (client && sessionId) {
+            console.log('[TIMER] Отправка сообщения TIMEOUT_WIN');
+            client.publish({
+              destination: `/app/input/session/${sessionId}/turn`,
+              body: JSON.stringify({
+                sessionId: sessionId,
+                playerId: playerId,
+                turnType: 'TIMEOUT_WIN',
+                details: {}
+              }),
+            });
+          }
+        }, 2 * 60 * 1000); // 2 минуты в миллисекундах
+        
+        setPlayerTurnTimeout(timeout);
+      } else {
+        console.log('[TIMER] Таймер не запущен, текущий игрок:', currentPlayerId, 'наш ID:', playerId);
+        
+        // Очистка таймера если он был активен
+        if (playerTurnTimeout) {
+          clearTimeout(playerTurnTimeout);
+          setPlayerTurnTimeout(null);
+        }
+      }
+    }
+  }, [gameState, playerId]);
 
   return {
     client,

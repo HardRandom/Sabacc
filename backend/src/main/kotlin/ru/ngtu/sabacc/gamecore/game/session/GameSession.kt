@@ -175,12 +175,26 @@ class GameSession(
             TurnType.DISCARD_BLOOD -> discardBloodCard(turnDTO)
             TurnType.PLAY_TOKEN -> playToken(turnDTO)
             TurnType.SELECT_DICE -> processImposterCard(turnDTO)
+            TurnType.TIMEOUT_WIN -> handleTimeoutWin(turnDTO)
             else -> return
         }
     }
 
     override fun getSessionId(): Long {
         return sessionId
+    }
+
+    private fun handleTimeoutWin(turnDTO: TurnDto) {
+        // Игрок не успел сделать ход за отведённое время — засчитываем принудительный пропуск
+        logger.debug { "Session $sessionId: Player ${turnDTO.playerId} timed out, forcing pass" }
+
+        val forcedPassTurn = TurnDto(
+            turnDTO.sessionId,
+            turnDTO.playerId,
+            TurnType.PASS,
+            mutableMapOf("forced" to true)
+        )
+        pass(forcedPassTurn)
     }
 
     private fun pass(turnDTO: TurnDto) {

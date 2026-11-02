@@ -11,5 +11,6 @@ enum class TurnType {
     PLAY_TOKEN,
     SELECT_DICE,
     AWAITING_DICE,
-    SELECT_TOKEN
+    SELECT_TOKEN,
+    TIMEOUT_WIN
 }
