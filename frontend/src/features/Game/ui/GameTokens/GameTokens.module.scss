@@ -6,11 +6,16 @@
 }
 
 .cardButton {
+  position: relative;
   background: none;
   border: none;
   padding: 0;
   display: flex;
   align-items: center;
+}
+
+.tokenFace {
+  display: flex;
   filter: contrast(1.5);
 }
 
@@ -29,4 +34,59 @@
   height: 120px;
   object-fit: contain;
   filter: contrast(1.5);
+}
+
+.tokenHint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  z-index: 30;
+  width: max-content;
+  max-width: 260px;
+  padding: 12px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  background: rgba(0, 13, 47, 0.95);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  color: #ffffff;
+  font-family: 'IBM Plex Mono', monospace;
+  text-align: left;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-50%);
+}
+
+.cardButton:first-child:not(:last-child) .tokenHint {
+  left: 0;
+  transform: none;
+}
+
+.cardButton:last-child:not(:first-child) .tokenHint {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.cardButton:hover .tokenHint,
+.cardButton:focus-visible .tokenHint {
+  opacity: 1;
+  visibility: visible;
+}
+
+.tokenHintName {
+  display: block;
+  margin-bottom: 6px;
+  color: #4fc3f7;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.tokenHintText {
+  display: block;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: normal;
 }

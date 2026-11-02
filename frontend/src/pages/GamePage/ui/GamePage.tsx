@@ -3,9 +3,19 @@ import cls from './GamePage.module.scss';
 import { Game } from '@/features/Game';
 import { useGameState } from '@/features/Game/model/hooks/useGameState';
 
-import React, { useState, useCallback, useEffect } from "react";
-//import { TokensTypes } from "../../../features/Game/model/types/game";
-import { GameStatus,  TokensTypes} from "@/features/Game/model/types/game";
+import React, { useState, useCallback, useEffect, useRef } from "react";
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '@/features/Auth';
+import { TokensTypes } from "@/features/Game/model/types/game";
+import {
+  DEFAULT_TOKEN_SELECTION,
+  formatSelectionCountdown,
+  readTokenSelection,
+  remainingSelectionSeconds,
+  saveTokenSelection,
+  shouldOpenTokenSelection,
+  TOKEN_SELECTION_TIMEOUT_SEC,
+} from '../model/tokenSelection';
 
 
 
@@ -41,6 +51,7 @@ const GamePage = () => {
     leaveCurrentRoom,
     fetchGameState,
   } = useGameState();
+  const playerId = useSelector(selectCurrentUser)?.id;
 
   let loader = null;
   let roomId = null;
@@ -69,8 +80,10 @@ const [usedTokens, setUsedTokens] = useState<TokensTypes[]>([]);
   const [hasSelectedTokens, setHasSelectedTokens] = useState<boolean>(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [gameStatus, setGameStatus] = useState<GameStatus>(GameStatus.WAITING_SECOND_USER);
+  const [selectionSecondsLeft, setSelectionSecondsLeft] = useState(TOKEN_SELECTION_TIMEOUT_SEC);
   const [flippedTokens, setFlippedTokens] = useState<string[]>([]);
+  const selectionSettledRef = useRef(false);
+  const confirmTokensRef = useRef<(tokens: TokensTypes[]) => void>(() => {});
 
 
     useEffect(() => {
@@ -90,29 +103,69 @@ const [usedTokens, setUsedTokens] = useState<TokensTypes[]>([]);
 
 
 
-  // Открываем модальное окно выбора жетонов, когда оба игрока подключены
+  // Один раз на комнату: повторный заход из меню не открывает выбор заново.
   useEffect(() => {
-    if (
-      !hasSelectedTokens &&
-      (gameStatus === GameStatus.ALL_USERS_JOINED ||
-       gameStatus === GameStatus.ALL_USERS_CONNECTED)
-    ) {
-      setIsModalOpen(true);
+    if (roomState?.id == null || playerId == null) {
+      return;
     }
-  }, [gameStatus, hasSelectedTokens]);
+
+    const saved = readTokenSelection(roomState.id, playerId);
+    if (saved) {
+      setMyTokens((current) => (
+        current.length === saved.length && current.every((token, index) => token === saved[index])
+          ? current
+          : saved
+      ));
+      setHasSelectedTokens(true);
+      setIsModalOpen(false);
+      return;
+    }
+
+    setIsModalOpen(shouldOpenTokenSelection({
+      status: roomState.status,
+      hasSecondPlayer: Boolean(roomState.playerSecond),
+      alreadySelected: hasSelectedTokens,
+    }));
+  }, [roomState?.id, roomState?.status, roomState?.playerSecond, playerId, hasSelectedTokens]);
 
   const handleSelectTokens = (tokens: TokensTypes[]) => {
-    setMyTokens(tokens);
-    setIsModalOpen(false);
-    console.log("Выбраны жетоны:", tokens);
-    if (client) {
-        // @ts-ignore
-      client.send(JSON.stringify({
-        action: "SELECT_TOKENS",
-        payload: { tokens }
-      }));
+    if (selectionSettledRef.current || tokens.length !== 3) {
+      return;
     }
+
+    selectionSettledRef.current = true;
+    if (roomState?.id != null && playerId != null) {
+      saveTokenSelection(roomState.id, playerId, tokens);
+    }
+    setMyTokens(tokens);
+    setHasSelectedTokens(true);
+    setIsModalOpen(false);
   };
+
+  confirmTokensRef.current = handleSelectTokens;
+
+  useEffect(() => {
+    if (!isModalOpen || hasSelectedTokens) {
+      return undefined;
+    }
+
+    selectionSettledRef.current = false;
+    const startedAt = Date.now();
+    setSelectionSecondsLeft(TOKEN_SELECTION_TIMEOUT_SEC);
+
+    const timer = window.setInterval(() => {
+      const left = remainingSelectionSeconds(Date.now() - startedAt);
+      setSelectionSecondsLeft((current) => (current === left ? current : left));
+      if (left > 0) {
+        return;
+      }
+
+      window.clearInterval(timer);
+      confirmTokensRef.current([...DEFAULT_TOKEN_SELECTION]);
+    }, 250);
+
+    return () => window.clearInterval(timer);
+  }, [isModalOpen, hasSelectedTokens]);
 
 
 
@@ -141,15 +194,6 @@ const handlePlayToken = useCallback((token: TokensTypes) => {
 }, [client, roomState, usedTokens]);
 
 
-
-  // Пример имитации изменения статуса игры (на практике приходит от сервера)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setGameStatus(GameStatus.ALL_USERS_JOINED);
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleCardClick = (tokenId: string) => {
     const enumValue = tokenNameToEnum[tokenId];
@@ -349,18 +393,31 @@ const tokenNameToEnum: Record<string, TokensTypes> = {
 
 
 
-        {gameStatus === GameStatus.WAITING_SECOND_USER && <p>Поиск противника...</p>}
+        {roomState?.status === 'WAITING_SECOND_USER' && <p>Поиск противника...</p>}
 
         {isModalOpen && (
           <div className={cls.modalOverlay}>
             <div className={cls.tokenModal}>
               <div className={cls.modalHeader}>
                 <h2>Выберите жетоны для игры</h2>
+                <div className={cls.selectionTimer}>
+                  <div
+                    className={classNames(cls.timerRing, {
+                      [cls.timerUrgent]: selectionSecondsLeft <= 30,
+                    })}
+                    style={{ ['--progress' as string]: `${(selectionSecondsLeft / TOKEN_SELECTION_TIMEOUT_SEC) * 100}%` }}
+                  >
+                    <span className={cls.timerValue}>{formatSelectionCountdown(selectionSecondsLeft)}</span>
+                  </div>
+                  <span className={cls.timerCaption}>на выбор</span>
+                </div>
                 <div className={cls.selectionCounter}>
                   Выбрано: {myTokens.length}/3
                 </div>
-
               </div>
+              <p className={cls.timerHint}>
+                Если не подтвердить выбор, будут выданы: Бесплатный розыгрыш, Возврат и Хищение.
+              </p>
 
               <div className={cls.tokensGrid}>
                 {tokenData.map((token) => (
@@ -405,8 +462,8 @@ const tokenNameToEnum: Record<string, TokensTypes> = {
               <div className={cls.modalActions}>
                 <button
                   className={cls.confirmButton}
-                  onClick={() => setIsModalOpen(false)}
-                  disabled={myTokens.length != 3}
+                  onClick={() => handleSelectTokens(myTokens)}
+                  disabled={myTokens.length !== 3}
                 >
                   Подтвердить выбор ({myTokens.length}/3)
                 </button>
