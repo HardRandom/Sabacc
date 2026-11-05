@@ -116,6 +116,7 @@ export const useGameState = () => {
         // Подписка на подтвержденные ходы
         client.subscribe(`/queue/session/${sessionId}/accepted-turns`, (message) => {
           const data = JSON.parse(message.body);
+          console.log('[WS] Получен ход:', data.turnType, 'от игрока', data.playerId);
           if (data.turnType === "AWAITING_DICE" && data.playerId === playerId) {
             showDiceModal(data.details);
           } else {
@@ -126,6 +127,7 @@ export const useGameState = () => {
           if (playerTurnTimeout) {
             clearTimeout(playerTurnTimeout);
             setPlayerTurnTimeout(null);
+            console.log('[WS] Таймер сброшен из-за получения хода');
           }
           fetchGameState(sessionId);
           fetchRoomState(sessionId);
@@ -134,6 +136,7 @@ export const useGameState = () => {
         // Результаты игры
         client.subscribe(`/queue/session/${sessionId}/game-results`, (message) => {
           const data = JSON.parse(message.body);
+          console.log('[WS] Получены результаты игры:', data.winnerId);
           setWinnerId(data.winnerId);
           localStorage.removeItem('roomId');
           console.log('[INFO] Игра завершена — roomId удалён из localStorage по событию game-results');
@@ -174,25 +177,16 @@ export const useGameState = () => {
     }
   }, [roomState?.status]);
 
-
-
-  const isGameInProgress = () => {
-    const status = roomState?.status;
-    return (
-      status !== GameStatus.WAITING_SECOND_USER &&
-      status !== GameStatus.PLAYER_DISCONNECTED &&
-      status !== GameStatus.FINISHED
-    );
-  };
-
   // Запуск таймера при изменении gameState и наличии активной игры
   useEffect(() => {
+    console.log("[DEBUG] gameState changed:", gameState);
     if (gameState && playerId) {
       const currentPlayerId = gameState.currentPlayerId;
+      console.log('[DEBUG] Player ID:', playerId, 'Current player ID:', currentPlayerId);
       
       // Если текущий игрок - это наш пользователь, запустить таймер
       if (currentPlayerId === playerId) {
-        console.log('[TIMER] Таймер запущен для игрока ID:', playerId);
+        console.log('[TIMER DEBUG] Таймер запущен для игрока ID:', playerId);
         
         // Сброс существующего таймера если есть
         if (playerTurnTimeout) {
@@ -200,13 +194,13 @@ export const useGameState = () => {
           setPlayerTurnTimeout(null);
         }
         
-        // Запуск нового таймера на 2 минуты
+        // Запуск нового таймера на 10 секунд для тестирования
         const timeout = setTimeout(() => {
-          console.log('[TIMER] Время вышло для игрока ID:', playerId);
+          console.log('[TIMER DEBUG] Время вышло для игрока ID:', playerId);
+          console.log('[TIMER DEBUG] Отправка сообщения TIMEOUT_WIN');
           
           // Отправляем автоматическую победу второму игроку
           if (client && sessionId) {
-            console.log('[TIMER] Отправка сообщения TIMEOUT_WIN');
             client.publish({
               destination: `/app/input/session/${sessionId}/turn`,
               body: JSON.stringify({
@@ -216,12 +210,14 @@ export const useGameState = () => {
                 details: {}
               }),
             });
+            console.log('[TIMER DEBUG] Сообщение TIMEOUT_WIN отправлено');
           }
-        }, 2 * 60 * 1000); // 2 минуты в миллисекундах
+        }, 10000); // Изменил на 10 секунд для тестирования
         
         setPlayerTurnTimeout(timeout);
+        console.log("[TIMER DEBUG] Таймер установлен");
       } else {
-        console.log('[TIMER] Таймер не запущен, текущий игрок:', currentPlayerId, 'наш ID:', playerId);
+        console.log('[TIMER DEBUG] Таймер не запущен, текущий игрок:', currentPlayerId, 'наш ID:', playerId);
         
         // Очистка таймера если он был активен
         if (playerTurnTimeout) {
@@ -231,6 +227,15 @@ export const useGameState = () => {
       }
     }
   }, [gameState, playerId]);
+
+  const isGameInProgress = () => {
+    const status = roomState?.status;
+    return (
+      status !== GameStatus.WAITING_SECOND_USER &&
+      status !== GameStatus.PLAYER_DISCONNECTED &&
+      status !== GameStatus.FINISHED
+    );
+  };
 
   return {
     client,
