@@ -1,145 +1,76 @@
-.header {
-  width: 100%;
-  padding: 0 40px;
-  display: flex;
-  gap: 10px;
-  justify-content: start;
-  position: relative;
-  z-index: 2;
-}
 
-.curTurn {
-  position: absolute;
-  height: 100%;
-  right: 210px;
-  bottom: 0;
-  background: #000c;
-  padding: 5px 20px;
-  transform: skew(-20deg);
-  border: 5px solid #00b3ff;
-  font: var(--font-m);
-  animation: blink 1s ease-in-out infinite;
-
-  img {
-    width: 20px;
-    height: 100%;
-    filter: invert(1);
-    transform: skew(20deg) rotate(180deg);
-
-    &.cur {
-      transform: skew(20deg) rotate(0);
-    }
-  }
-}
-
-.nickname {
-  margin-right: auto;
-  height: fit-content;
-  width: 250px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
-  background: #000c;
-  padding: 10px 20px;
-  transform: skew(-20deg);
-  border: 5px solid #00b3ff;
-  font: var(--font-m);
-
-  span {
-    display: inline-block;
-    transform: skew(20deg);
-  }
-}
-
-.controls {
-  position: absolute;
-  top: 100%;
-  left: 40px;
-  transform: rotate(180deg);
-}
-
-.hiddenTokens {
-  display: flex;
-  gap: 8px;
-  transform: rotate(180deg);
-}
-
-.hiddenToken {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  box-sizing: border-box;
-  border: 3px solid #dbd79e;
-  background:
-    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.35), transparent 36%),
-    radial-gradient(circle at 50% 50%, #1a4d73 0 42%, #041426 46% 100%);
-  box-shadow: inset 0 0 0 5px rgba(2, 16, 40, 0.85);
-}
-
-@keyframes blink {
-
-  0%,
-  100% {
-    background-color: #00b3ff;
-  }
-
-  50% {
-    background-color: #000000;
-  }
-}
-
-.currentUserTurn {
-  font-weight: bold;
-  animation: blink 1s ease-in-out infinite;
-}
-
-.myCards {
-  position: absolute;
-  top: 80%;
-  left: 50%;
-  display: flex;
-  gap: 20px;
-  transform: translate(-50%, -50%);
-}
-
-.roundContainer {
-  position: absolute;
-  bottom: 0;
-  right: 40px;
-  padding: 15px 30px;
-  background-color: #000c;
-  font-size: 20px;
-  transform: skew(-20deg);
-  border: 5px solid #00b3ff;
-
-  span {
-    display: inline-block;
-    transform: skew(20deg);
-  }
-}
-
-.myBank {
-  position: absolute;
-  top: calc(100% + 20px);
-  right: 40px;
+.header,
+.opponent,
+.status,
+.cards,
+.badge,
+.tokens {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #1b232b;
-  height: fit-content;
-  padding: 10px;
-  border-radius: 10px;
+}
 
-  span {
-    font-weight: 300;
-    color: #dbd79e;
-    font-size: 24px;
-  }
+.header {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
 
-  img {
-    width: 28px;
-    height: 28px;
-    object-fit: contain;
+.opponent,
+.status,
+.tokens {
+  flex-wrap: wrap;
+}
+
+.badge,
+.tokens {
+  padding: 8px 12px;
+  border: 1px solid var(--hud-border);
+  border-radius: 8px;
+  background: rgb(15 23 42 / 95%);
+}
+
+.badge[data-active='true'] {
+  border-color: var(--hud-gold);
+  box-shadow: 0 0 15px rgb(245 158 11 / 30%);
+}
+
+.label {
+  color: var(--hud-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.value {
+  color: var(--hud-cyan);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.token {
+  width: 26px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--hud-cyan);
+  border-radius: 6px;
+  background: rgb(0 229 255 / 10%);
+  color: var(--hud-cyan);
+}
+
+.token[data-used='true'] {
+  border-color: #475569;
+  background: transparent;
+  color: var(--hud-muted);
+}
+
+.cards {
+  --hud-card-width: 46px;
+}
+
+@media (max-width: 550px) {
+  .opponent,
+  .status {
+    width: 100%;
   }
 }

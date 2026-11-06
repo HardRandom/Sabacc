@@ -1,21 +1,16 @@
-import { Link } from 'react-router-dom';
-import { memo } from 'react';
-import MainMenu from '@/widgets/MainMenu/ui/MainMenu';
-import cls from './MainPage.module.scss'
 
-export const MainPage = memo(() => {
-  return (
-    <>
-      <div className={cls.menu}>
-        <h1 className={cls.title}>САБАКК</h1>
-        <MainMenu />
-        {/* Ссылка на страницу с комнатами */}
-        <Link to="/rooms" className={cls.link}>
-          Комнаты
-        </Link>
-      </div>
-    </>
-  );
-});
+import { memo } from 'react';
+import { MainMenu } from '@/widgets/MainMenu';
+import hud from '@/shared/ui/Hud/Hud.module.scss';
+import cls from './MainPage.module.scss';
+
+export const MainPage = memo(() => (
+  <main className={hud.screen}>
+    <div className={cls.menu}>
+      <h1 className={cls.title}>САБАКК</h1>
+      <MainMenu />
+    </div>
+  </main>
+));
 
 export default MainPage;

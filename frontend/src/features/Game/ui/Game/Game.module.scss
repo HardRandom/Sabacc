@@ -1,18 +1,12 @@
-.turnTimer {
-  position: fixed;
-  top: 16px;
-  right: 24px;
-  z-index: 6;
-}
+.board {
+  --hud-card-width: clamp(48px, 11vw, 78px);
 
-.roomId {
-  position: fixed;
-  top: 16px;
-  left: 24px;
-  z-index: 6;
-  color: rgba(255, 255, 255, 0.8);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 14px;
+  width: min(100%, 1120px);
+  min-height: min(640px, calc(100dvh - 48px));
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 14px;
+  padding: clamp(12px, 2vw, 24px);
 }
 
 .waitScreen {

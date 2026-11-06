@@ -1,83 +1,58 @@
-import { classNames, Mods } from '@/shared/lib/classNames/classNames';
-import { memo, useCallback, useEffect } from 'react';
-import cls from './GameFooter.module.scss';
-import RoolsImg from '@/shared/assets/images/rules.png'
-import PassImg from '@/shared/assets/images/pass.png'
-import GiveUpmg from '@/shared/assets/images/give_up.png'
-import { User } from '@/features/Auth/model/types/auth';
-import { GameTokens } from '../GameTokens/GameTokens';
-import { AppLink } from '@/shared/ui';
-import { getRouteMain, getRouteRools } from '@/shared/const/router';
-import { GameState } from '../../model/types/game';
-import { GameCard, GameCardType } from '@/entities/GameCard';
-import CreditImg from '@/shared/assets/images/credit.png'
-import { useNavigate } from 'react-router-dom';
 
-import { TokensTypes } from '../../model/types/game';
+import { User } from '@/features/Auth/model/types/auth';
+import { GameCard, GameCardType } from '@/entities/GameCard';
+import hud from '@/shared/ui/Hud/Hud.module.scss';
+import { GameTokens } from '../GameTokens/GameTokens';
+import { Player, TokensTypes } from '../../model/types/game';
+import cls from './GameFooter.module.scss';
 
 interface GameFooterProps {
-  user: User;
-  isCurentTurn: boolean;
-  gameState: GameState;
-  sendTurn: any;
-  leaveCurrentRoom: any;
+  user: User | null;
+  player?: Player;
+  canAct: boolean;
   selectedTokens: TokensTypes[];
-  onPlayToken?: (token: any) => void;
+  onPass: () => void;
+  onLeave: () => void;
+  onShowRules: () => void;
+  onPlayToken: (token: TokensTypes) => void;
 }
 
-export const GameFooter = memo((props: GameFooterProps) => {
-  const { user, isCurentTurn, gameState, sendTurn, leaveCurrentRoom, selectedTokens, onPlayToken } = props;
-
-  console.log('[GameFooter] selectedTokens prop:', props.selectedTokens);
-
-  const i = gameState?.players[0].playerId == user?.id ? 0 : 1;
-  const navigate = useNavigate()
-
-  const mods: Mods = {
-    [cls.currentUserTurn]: isCurentTurn
-  }
-  const handlePass = () => {
-    if (sendTurn) {
-      sendTurn('PASS');
-    }
-  };
-  const handleLeaveGame = () => {
-    if (leaveCurrentRoom) {
-      leaveCurrentRoom();
-      setTimeout(() => { navigate(getRouteMain())}, 500)
-    };
-  };
-
-  return (
-    <div className={classNames(cls.footer, {}, [])}>
-      <div className={classNames(cls.myCards)}>
-        <GameCard card={gameState.players[i].bloodCards[0]} type={GameCardType.BLOOD}></GameCard>
-        <GameCard card={gameState.players[i].sandCards[0]} type={GameCardType.SAND}></GameCard>
+export const GameFooter = ({
+  user, player, canAct, selectedTokens, onPass, onLeave, onShowRules, onPlayToken,
+}: GameFooterProps) => (
+  <footer className={cls.footer}>
+    <div className={cls.controls}>
+      <div className={cls.badge} data-active={canAct}>
+        <div>
+          <div className={cls.label}>{canAct ? 'Ваш ход' : 'Вы'}</div>
+          <strong>{user?.username}</strong>
+        </div>
+        <span className={cls.chips}>Остаток {player?.remainChips ?? '—'}</span>
       </div>
-
-
-      <div className={cls.myBank}>
-        <span>Остаток: {gameState.players[i].remainChips} </span>
-        <img src={CreditImg} alt="Credit" />
-      </div>
-
-      <div className={cls.controls}>
-        <GameTokens
-        userId={user?.id}
-        selectedTokens={props.selectedTokens}
-        isClickable={isCurentTurn}
-        sendTurn={sendTurn}
-        onPlayToken={onPlayToken}
-        />
-      </div>
-
-      <button className={cls.button} onClick={handleLeaveGame}><img src={GiveUpmg} alt="" /></button>
-      <AppLink className={cls.button} to={getRouteRools()}><img src={RoolsImg} alt="" /></AppLink>
-      <button className={cls.button} onClick={handlePass}><img src={PassImg} alt="" /></button>
-
-      <div className={classNames(cls.nickname, mods, [])}>
-        <span>{user?.username || 'Opponent'}</span>
+      <div className={cls.actions}>
+        <button type="button" className={hud.button} onClick={onLeave}>Сдаться</button>
+        <button type="button" className={hud.button} onClick={onShowRules}>Правила</button>
+        <button
+          type="button"
+          className={`${hud.button} ${hud.gold}`}
+          onClick={onPass}
+          disabled={!canAct}
+        >
+          Пас
+        </button>
       </div>
     </div>
-  );
-});
+
+    <div className={cls.cards} role="group" aria-label="Ваши карты">
+      <GameCard type={GameCardType.BLOOD} card={player?.bloodCards[0]} variant="hud" />
+      <GameCard type={GameCardType.SAND} card={player?.sandCards[0]} variant="hud" />
+    </div>
+
+    <GameTokens
+      selectedTokens={selectedTokens}
+      availableTokens={player?.tokens}
+      canPlay={canAct}
+      onPlay={onPlayToken}
+    />
+  </footer>
+);

@@ -1,0 +1,17 @@
+
+.dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(calc(100% - 24px), 760px);
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  border: 0;
+  border-radius: 12px;
+  background: var(--hud-bg);
+  color: inherit;
+}
+
+.dialog::backdrop {
+  background: rgb(2 6 23 / 72%);
+}

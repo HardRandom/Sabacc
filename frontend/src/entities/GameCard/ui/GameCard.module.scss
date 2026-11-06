@@ -57,3 +57,57 @@
 .SAND {
   color: rgb(227, 211, 144);
 }
+
+.hudCard {
+  --card-outline: #fde68a;
+  --card-face: #b45309;
+  --card-shape: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+
+  position: relative;
+  display: block;
+  width: var(--hud-card-width, 78px);
+  aspect-ratio: 78 / 116;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font: 800 clamp(12px, 2vw, 18px)/1 'Segoe UI', sans-serif;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--card-outline);
+    clip-path: var(--card-shape);
+  }
+
+  &:is(button):not(:disabled) {
+    cursor: pointer;
+
+    &:hover {
+      filter: brightness(1.25);
+    }
+  }
+}
+
+.hudBlood {
+  --card-outline: #fca5a5;
+  --card-face: #991b1b;
+}
+
+.hudBack {
+  --card-outline: #64748b;
+  --card-face: #334155;
+  color: #e2e8f0;
+}
+
+.hudFace {
+  position: absolute;
+  inset: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+  background: var(--card-face);
+  clip-path: var(--card-shape);
+}

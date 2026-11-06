@@ -1,0 +1,76 @@
+
+.screen {
+  --hud-bg: #070b14;
+  --hud-panel: rgb(15 23 42 / 88%);
+  --hud-cyan: #00e5ff;
+  --hud-border: rgb(0 229 255 / 25%);
+  --hud-gold: #f59e0b;
+  --hud-text: #f1f5f9;
+  --hud-muted: #94a3b8;
+
+  position: relative;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(circle at 50% 35%, #13203b 0%, var(--hud-bg) 75%);
+  color: var(--hud-text);
+  font: 15px/1.45 'Segoe UI', Roboto, sans-serif;
+
+  @media (max-width: 600px) {
+    padding: 12px;
+  }
+}
+
+.panel {
+  background: var(--hud-panel);
+  border: 1px solid var(--hud-border);
+  border-radius: 12px;
+  box-shadow: 0 0 25px rgb(0 229 255 / 8%), inset 0 0 15px rgb(0 229 255 / 4%);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 22px;
+  border: 1px solid var(--hud-cyan);
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgb(0 229 255 / 18%), rgb(0 229 255 / 5%));
+  color: var(--hud-text);
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-align: center;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 0 12px var(--hud-border);
+    filter: brightness(1.2);
+  }
+
+  &:disabled {
+    opacity: .45;
+    cursor: default;
+  }
+}
+
+.gold {
+  border-color: var(--hud-gold);
+  background: linear-gradient(90deg, rgb(245 158 11 / 25%), rgb(245 158 11 / 5%));
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--hud-gold);
+  border-radius: 20px;
+  background: rgb(245 158 11 / 15%);
+  color: #fcd34d;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

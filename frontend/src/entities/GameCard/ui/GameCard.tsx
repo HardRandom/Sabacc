@@ -31,19 +31,13 @@ export interface GameCardProps {
   onClick?: () => void;
   isFlipped?: boolean;
   isMultiple?: boolean;
+  variant?: 'artwork' | 'hud';
+  label?: string;
+  disabled?: boolean;
 }
 
 
-// const bloodCards: Record<number, any> = {
-//   1: cardBlood1,
-//   2: cardBlood2,
-//   3: cardBlood3,
-//   4: cardBlood4,
-//   5: cardBlood5,
-//   6: cardBlood6,
-// };
-
-const allCards: Record<GameCardType, Record<number, any>> = {
+const allCards: Record<GameCardType, Record<number, string>> = {
   SAND: {
     1: cardSand1,
     2: cardSand2,
@@ -69,7 +63,47 @@ export const GameCard = memo((props: GameCardProps) => {
     onClick,
     isFlipped = false,
     isMultiple = false,
+    variant = 'artwork',
+    label,
+    disabled,
   } = props;
+
+
+  if (variant === 'hud') {
+    const suit = type === GameCardType.BLOOD ? 'Кровь' : 'Песок';
+    const face = isFlipped ? undefined : card;
+    const value = face?.cardValueType === 'SYLOP' ? '✦'
+      : face?.cardValueType === 'IMPOSTER' ? '◆'
+      : face?.value ?? '?';
+    const name = face?.cardValueType === 'SYLOP' ? 'Сайлоп'
+      : face?.cardValueType === 'IMPOSTER' ? 'Самозванец'
+      : face ? String(value) : 'Рубашка';
+    const cardClass = classNames(cls.hudCard, {
+      [cls.hudBack]: !face,
+      [cls.hudBlood]: type === GameCardType.BLOOD,
+    });
+    const contents = (
+      <span className={cls.hudFace} aria-hidden="true">
+        <span>{value}</span>
+        <span>{type === GameCardType.BLOOD ? '♦' : '☀'}</span>
+        <span>{value}</span>
+      </span>
+    );
+
+    return onClick ? (
+      <button
+        type="button"
+        className={cardClass}
+        aria-label={label ?? `${suit}: ${name}`}
+        disabled={disabled}
+        onClick={onClick}
+      >
+        {contents}
+      </button>
+    ) : (
+      <span className={cardClass} role="img" aria-label={`${suit}: ${name}`}>{contents}</span>
+    );
+  }
 
   const getCardImage = () => {
     if (card?.cardValueType === 'IMPOSTER') {

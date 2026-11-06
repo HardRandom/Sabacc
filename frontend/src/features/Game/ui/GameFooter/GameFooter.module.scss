@@ -1,90 +1,70 @@
+
 .footer {
-  width: 100%;
-  padding: 0 40px;
-  display: flex;
-  gap: 10px;
-  justify-content: end;
-  position: relative;
-}
-
-.nickname {
-  margin-left: auto;
-  height: fit-content;
-  width: 250px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
-  background: #000c;
-  padding: 10px 20px;
-  font: var(--font-m);
-  border: 5px solid #00b3ff;
-  transform: skew(-20deg);
-
-  span {
-    display: inline-block;
-    transform: skew(20deg);
-  }
-}
-
-@keyframes blink {
-  0%,
-  100% {
-    background-color: #00b3ff;
-  }
-
-  50% {
-    background-color: #000000;
-  }
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
 }
 
 .controls {
-  position: absolute;
-  bottom: 100%;
+  display: grid;
+  gap: 10px;
 }
 
-.currentUserTurn {
-  font-weight: bold;
-  animation: blink 1s ease-in-out infinite;
-}
-
-.button {
-  cursor: pointer;
-  background: none;
-  border: none;
-  filter: brightness(0.8) grayscale(.1);
-}
-
-.myCards {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  display: flex;
-  gap: 20px;
-  transform: translate(-50%, -50%);
-}
-
-.myBank {
-  position: absolute;
-  bottom: calc(100% + 20px);
-  left: 40px;
+.badge,
+.actions,
+.cards {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #1b232b;
-  height: fit-content;
-  padding: 10px;
-  border-radius: 10px;
+}
 
-  span {
-    font-weight: 300;
-    color: #dbd79e;
-    font-size: 24px;
+.badge {
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px solid var(--hud-border);
+  border-radius: 8px;
+  background: rgb(15 23 42 / 95%);
+}
+
+.badge[data-active='true'] {
+  border-color: var(--hud-gold);
+  box-shadow: 0 0 15px rgb(245 158 11 / 30%);
+
+  .label {
+    color: var(--hud-gold);
   }
+}
 
-  img {
-    width: 28px;
-    height: 28px;
-    object-fit: contain;
+.label {
+  color: var(--hud-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.chips {
+  color: var(--hud-cyan);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.actions {
+  flex-wrap: wrap;
+
+  button {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 900px) {
+  .footer {
+    grid-template-columns: 1fr auto;
+  }
+}
+
+@media (max-width: 440px) {
+  .footer {
+    grid-template-columns: 1fr;
   }
 }

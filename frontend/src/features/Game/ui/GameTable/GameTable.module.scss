@@ -1,37 +1,45 @@
+
 .table {
-  width: 1200px;
-  height: 650px;
-  border-radius: 10px;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr minmax(130px, 170px);
   align-items: center;
+  gap: 18px;
+  min-height: 270px;
+  padding: clamp(12px, 3vw, 30px);
+  border: 1px solid var(--hud-border);
+  border-radius: 16px;
+  background: radial-gradient(ellipse at center, rgb(0 229 255 / 5%), transparent 70%);
+}
+
+.piles {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
   justify-content: center;
-  gap: 100px;
-  position: relative;
+  gap: clamp(8px, 2vw, 22px);
 }
 
-.background {
-  position: absolute;
-  z-index: -1;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.pile {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 6px;
+  color: var(--hud-muted);
+  font-size: 11px;
+  text-align: center;
 }
 
-.discardBlood {
-  position: absolute;
-  right: 72%;
+.empty {
+  display: grid;
+  place-items: center;
+  width: var(--hud-card-width);
+  aspect-ratio: 78 / 116;
+  border: 1px dashed var(--hud-border);
+  border-radius: 8px;
 }
 
-.discardSand {
-  position: absolute;
-  left: 72%;
-}
-
-.bank {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
+@media (max-width: 700px) {
+  .table {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
 }

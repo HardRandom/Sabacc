@@ -1,25 +1,24 @@
+
 import { memo, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
 import { selectCurrentUser, Auth } from '@/features/Auth';
-import { getRouteGame, getRouteRools } from '@/shared/const/router';
+import { getRouteGame, getRouteRooms, getRouteRools } from '@/shared/const/router';
 import { classNames } from '@/shared/lib/classNames/classNames';
-import { Button, Modal, AppLink } from '@/shared/ui';
-import cls from './MainMenu.module.scss'; // Убедитесь, что ваш CSS-файл называется MainMenu.module.scss
+import { Modal } from '@/shared/ui';
+import hud from '@/shared/ui/Hud/Hud.module.scss';
+import cls from './MainMenu.module.scss';
 
 interface MainMenuProps {
   className?: string;
 }
 
-const getInitialAvatar = () => {
-  return localStorage.getItem('selectedAvatar') || '';
-};
+const avatars = ['👑', '⚔️', '👾', '🚀', '⭐️'];
 
-export const MainMenu = memo((props: MainMenuProps) => {
-  const { className } = props;
+export const MainMenu = memo(({ className }: MainMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedAvatar, setSelectedAvatar] = useState<string>(getInitialAvatar);
+  const [selectedAvatar, setSelectedAvatar] = useState(() => localStorage.getItem('selectedAvatar') || '');
   const navigate = useNavigate();
   const user = useSelector(selectCurrentUser);
   const [returnRoomId, setReturnRoomId] = useState<number | null>(null);
@@ -52,27 +51,20 @@ export const MainMenu = memo((props: MainMenuProps) => {
     };
   }, [user?.id]);
 
-  const handleOpen = () => {
-    if (user) {
-      navigate(getRouteGame());
-    } else {
+  const handlePlay = () => {
+    if (!user) {
       setIsOpen(true);
-    }
-  };
-
-  const handleReturn = () => {
-    if (!returnRoomId) {
       return;
     }
-    localStorage.setItem('roomId', String(returnRoomId));
+    if (returnRoomId) {
+      localStorage.setItem('roomId', String(returnRoomId));
+    }
     navigate(getRouteGame());
   };
 
-  const handleClose = () => setIsOpen(false);
-
   const handleLogout = () => {
     localStorage.clear();
-    window.location.href = "";
+    window.location.href = '';
   };
 
   const handleAvatarSelect = (avatar: string) => {
@@ -81,51 +73,39 @@ export const MainMenu = memo((props: MainMenuProps) => {
   };
 
   return (
-    <div className={classNames(cls.Menu, {}, [className])}>
+    <div className={classNames(cls.menu, {}, [hud.panel, className])}>
       {user && (
-        <div className={cls.userInfo}>
-          <div className={cls.avatarSection}>
-            <div className={cls.avatar}>{selectedAvatar || '👤'}</div>
-            <div className={cls.avatarSelector}>
-              {['👑', '⚔️', '👾', '🚀', '⭐️'].map((avatar) => (
-                <button
-                  key={avatar}
-                  className={classNames(cls.avatarOption, {
-                    [cls.selected]: selectedAvatar === avatar
-                  })}
-                  onClick={() => handleAvatarSelect(avatar)}
-                >
-                  {avatar}
-                </button>
-              ))}
-            </div>
+        <div className={cls.profile}>
+          <div>
+            <div className={cls.label}>ИГРОК В СЕТИ</div>
+            <div className={cls.username}>{selectedAvatar || '👤'} {user.username}</div>
           </div>
-          {/* НОВЫЙ БЛОК: здесь имя пользователя и кнопка "Выйти" */}
-          <div className={cls.userInfoDetails}>
-            <div className={cls.username}>{user.username}</div>
-            <Button
-              variant="btn" // Убедитесь, что 'btn' - это правильный variant для вашего компонента Button
-              className={cls.logoutBtn}
-              onClick={handleLogout}
-            >
-              Выйти
-            </Button>
+          <button type="button" className={`${hud.button} ${cls.logout}`} onClick={handleLogout}>
+            Выйти
+          </button>
+          <div className={cls.avatars} role="group" aria-label="Аватар">
+            {avatars.map((avatar) => (
+              <button
+                key={avatar}
+                type="button"
+                className={`${hud.button} ${cls.avatarOption}`}
+                aria-pressed={selectedAvatar === avatar}
+                onClick={() => handleAvatarSelect(avatar)}
+              >
+                {avatar}
+              </button>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Кнопки "Играть" и "Правила" */}
-      <Button variant="btn" onClick={returnRoomId ? handleReturn : handleOpen}>
+      <button type="button" className={`${hud.button} ${hud.gold}`} onClick={handlePlay}>
         {returnRoomId ? 'Вернуться' : 'Играть'}
-      </Button>
+      </button>
+      <Link className={hud.button} to={getRouteRooms()}>Комнаты</Link>
+      <Link className={`${hud.button} ${cls.rules}`} to={getRouteRools()}>Правила</Link>
 
-      <div className={cls.btns}>
-        <AppLink variant="btn" to={getRouteRools()}>
-          Правила
-        </AppLink>
-      </div>
-
-      <Modal isOpen={isOpen} onClose={handleClose}>
+      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} lazy>
         <Auth />
       </Modal>
     </div>

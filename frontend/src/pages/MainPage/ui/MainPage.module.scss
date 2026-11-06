@@ -1,58 +1,14 @@
+
 .menu {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 42px;
+  width: min(100%, 420px);
+  text-align: center;
 }
 
 .title {
-  font-family: 'IBM Plex Mono', monospace;
-  font-weight: 500;
-  font-size: 128px;
-  line-height: 96%;
-  letter-spacing: 35px;
-  color: #FFFFFF;
-
-  filter: drop-shadow(0 0 19.7px rgba(255, 255, 255, 0.5));
-
-  width: 651px;
-  height: 219px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-
-  white-space: nowrap;
-
-}
-
-.link {
-  width: 624px;
-  height: 70px;
-  padding: 0;
-  background: linear-gradient(90deg, #00206C, #00B1FF, #00B7FF, #033970, #04002F);
-  border: 1px solid #FFFFFF;
-  border-radius: 35px;
-  margin-bottom: 42px;
-  color: #FFFFFF;
-  font-family: 'IBM Plex Mono', monospace;
-  font-weight: 600;
-  font-size: 36px;
-  line-height: 100%;
-  text-align: center;
-  backdrop-filter: blur(10px);
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease-in-out;
-
-  &:hover {
-    opacity: 0.9;
-  }
+  margin-bottom: 10px;
+  color: var(--hud-text);
+  font-size: clamp(32px, 8vw, 46px);
+  font-weight: 800;
+  letter-spacing: .26em;
+  text-shadow: 0 0 18px rgb(0 229 255 / 50%);
 }
