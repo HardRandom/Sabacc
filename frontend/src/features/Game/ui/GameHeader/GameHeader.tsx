@@ -41,8 +41,8 @@ export const GameHeader = ({
     </div>
 
     <div className={cls.cards} aria-label="Скрытые карты соперника" role="group">
-      <GameCard type={GameCardType.BLOOD} variant="hud" isFlipped />
-      <GameCard type={GameCardType.SAND} variant="hud" isFlipped />
+      <GameCard type={GameCardType.BLOOD} isFlipped />
+      <GameCard type={GameCardType.SAND} isFlipped />
     </div>
 
     <div className={cls.status}>

@@ -134,6 +134,14 @@ export const Game = memo(({
     setCurrentModal('GAME');
   }, []);
 
+  const showWinner = useCallback((playerId: number) => {
+    roundDecidedRef.current = true;
+    setWaitingForOpponentRound(false);
+    setMatchDraw(false);
+    setForcedWinnerId(playerId);
+    setCurrentModal('GAME');
+  }, []);
+
   const publishRoundAction = useCallback((action: 'closed' | 'forfeit' | 'timeout') => {
     if (!client?.connected || !user) {
       return;
@@ -152,6 +160,15 @@ export const Game = memo(({
     (finishLeave ?? leaveCurrentRoom)?.();
     navigate(getRouteMain());
   }, [finishLeave, leaveCurrentRoom, navigate]);
+
+  const handleSurrender = () => {
+    if (!client.connected || opponentId == null || roundDecidedRef.current || currentModal === 'GAME') {
+      return;
+    }
+
+    publishRoundAction('forfeit');
+    showWinner(opponentId);
+  };
 
   const finishRoundByTimeout = useCallback(() => {
     if (roundClosedRef.current || roundDecidedRef.current) {
@@ -251,6 +268,12 @@ export const Game = memo(({
       if (data.playerId == null || String(data.playerId) === String(user.id)) {
         return;
       }
+      if (data.action === 'forfeit') {
+        if (!roundDecidedRef.current && String(data.playerId) === String(opponentId)) {
+          showWinner(user.id);
+        }
+        return;
+      }
       if (
         data.round != null
         && roundKeyRef.current != null
@@ -274,7 +297,7 @@ export const Game = memo(({
         }
         return;
       }
-      if (data.action !== 'timeout' && data.action !== 'forfeit') {
+      if (data.action !== 'timeout') {
         return;
       }
       if (roundDecidedRef.current) {
@@ -312,7 +335,7 @@ export const Game = memo(({
       subscription?.unsubscribe();
       client.onConnect = previousOnConnect;
     };
-  }, [client, roomState.id, showDraw, user]);
+  }, [client, opponentId, roomState.id, showDraw, showWinner, user]);
 
   // Показ модалки игры, если победитель есть и нет открытой модалки раунда
   useEffect(() => {
@@ -377,7 +400,7 @@ export const Game = memo(({
   }, [actionsBlocked]);
 
   const shownWinnerId = forcedWinnerId ?? winnerId ?? null;
-  const resultIsDraw = matchDraw || gameDraw;
+  const resultIsDraw = forcedWinnerId == null && (matchDraw || gameDraw);
 
   return (
     <>
@@ -419,7 +442,7 @@ export const Game = memo(({
       {!waitingForOpponentRound && (
       <>
       {/* Модалка карт */}
-      {modalCards && (
+      {currentModal !== 'GAME' && modalCards && (
         <GameCardModal
           cards={modalCards.cards}
           sendTurn={sendTurn}
@@ -428,7 +451,7 @@ export const Game = memo(({
       )}
 
       {/* Модалка кубиков */}
-      {diceDetails && (
+      {currentModal !== 'GAME' && diceDetails && (
         <GameDiceModal
           first={diceDetails.first}
           second={diceDetails.second}
@@ -463,7 +486,7 @@ export const Game = memo(({
           canAct={canAct}
           selectedTokens={myTokens}
           onPass={() => sendTurn('PASS')}
-          onLeave={leaveMatch}
+          onSurrender={client.connected && opponentId != null ? handleSurrender : undefined}
           onShowRules={() => setRulesOpen(true)}
           onPlayToken={(token) => sendTurn('PLAY_TOKEN', { token })}
         />

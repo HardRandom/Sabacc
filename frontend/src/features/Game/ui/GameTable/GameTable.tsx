@@ -34,7 +34,7 @@ export const GameTable = ({
                 type={type}
                 card={card ?? undefined}
                 isFlipped={deck}
-                variant="hud"
+                isMultiple={deck}
                 label={`Взять карту: ${label}`}
                 disabled={!canDraw}
                 onClick={() => sendTurn(action)}

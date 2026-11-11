@@ -12,13 +12,13 @@ interface GameFooterProps {
   canAct: boolean;
   selectedTokens: TokensTypes[];
   onPass: () => void;
-  onLeave: () => void;
+  onSurrender?: () => void;
   onShowRules: () => void;
   onPlayToken: (token: TokensTypes) => void;
 }
 
 export const GameFooter = ({
-  user, player, canAct, selectedTokens, onPass, onLeave, onShowRules, onPlayToken,
+  user, player, canAct, selectedTokens, onPass, onSurrender, onShowRules, onPlayToken,
 }: GameFooterProps) => (
   <footer className={cls.footer}>
     <div className={cls.controls}>
@@ -30,7 +30,9 @@ export const GameFooter = ({
         <span className={cls.chips}>Остаток {player?.remainChips ?? '—'}</span>
       </div>
       <div className={cls.actions}>
-        <button type="button" className={hud.button} onClick={onLeave}>Сдаться</button>
+        <button type="button" className={hud.button} onClick={onSurrender} disabled={!onSurrender}>
+          Сдаться
+        </button>
         <button type="button" className={hud.button} onClick={onShowRules}>Правила</button>
         <button
           type="button"
@@ -44,8 +46,8 @@ export const GameFooter = ({
     </div>
 
     <div className={cls.cards} role="group" aria-label="Ваши карты">
-      <GameCard type={GameCardType.BLOOD} card={player?.bloodCards[0]} variant="hud" />
-      <GameCard type={GameCardType.SAND} card={player?.sandCards[0]} variant="hud" />
+      <GameCard type={GameCardType.BLOOD} card={player?.bloodCards[0]} />
+      <GameCard type={GameCardType.SAND} card={player?.sandCards[0]} />
     </div>
 
     <GameTokens

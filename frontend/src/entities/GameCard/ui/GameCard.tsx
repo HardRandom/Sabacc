@@ -31,7 +31,6 @@ export interface GameCardProps {
   onClick?: () => void;
   isFlipped?: boolean;
   isMultiple?: boolean;
-  variant?: 'artwork' | 'hud';
   label?: string;
   disabled?: boolean;
 }
@@ -63,49 +62,17 @@ export const GameCard = memo((props: GameCardProps) => {
     onClick,
     isFlipped = false,
     isMultiple = false,
-    variant = 'artwork',
     label,
     disabled,
   } = props;
 
 
-  if (variant === 'hud') {
-    const suit = type === GameCardType.BLOOD ? 'Кровь' : 'Песок';
-    const face = isFlipped ? undefined : card;
-    const value = face?.cardValueType === 'SYLOP' ? '✦'
-      : face?.cardValueType === 'IMPOSTER' ? '◆'
-      : face?.value ?? '?';
-    const name = face?.cardValueType === 'SYLOP' ? 'Сайлоп'
-      : face?.cardValueType === 'IMPOSTER' ? 'Самозванец'
-      : face ? String(value) : 'Рубашка';
-    const cardClass = classNames(cls.hudCard, {
-      [cls.hudBack]: !face,
-      [cls.hudBlood]: type === GameCardType.BLOOD,
-    });
-    const contents = (
-      <span className={cls.hudFace} aria-hidden="true">
-        <span>{value}</span>
-        <span>{type === GameCardType.BLOOD ? '♦' : '☀'}</span>
-        <span>{value}</span>
-      </span>
-    );
-
-    return onClick ? (
-      <button
-        type="button"
-        className={cardClass}
-        aria-label={label ?? `${suit}: ${name}`}
-        disabled={disabled}
-        onClick={onClick}
-      >
-        {contents}
-      </button>
-    ) : (
-      <span className={cardClass} role="img" aria-label={`${suit}: ${name}`}>{contents}</span>
-    );
-  }
-
+  const backImage = type === GameCardType.BLOOD ? cardBloodBack : cardSandBack;
   const getCardImage = () => {
+    if (isFlipped) {
+      return backImage;
+    }
+
     if (card?.cardValueType === 'IMPOSTER') {
       return type === GameCardType.BLOOD ? cardBloodImposter : cardSandImposter;
     }
@@ -114,32 +81,35 @@ export const GameCard = memo((props: GameCardProps) => {
       return type === GameCardType.BLOOD ? cardBloodSylop : cardSandSylop;
     }
 
-    const face = getNumericCardAsset(allCards[type], card?.value);
-    if (face) {
-      return face;
-    }
-
-    return type === GameCardType.BLOOD ? cardBloodBack : cardSandBack;
+    return getNumericCardAsset(allCards[type], card?.value) ?? backImage;
   };
 
   const cardImage = getCardImage();
+  const suit = type === GameCardType.BLOOD ? 'Кровь' : 'Песок';
+  const name = cardImage === backImage ? 'Рубашка'
+    : card?.cardValueType === 'SYLOP' ? 'Сайлоп'
+    : card?.cardValueType === 'IMPOSTER' ? 'Самозванец'
+    : card?.value;
+  const isStack = isFlipped && isMultiple;
+  const cardClass = classNames(cls.card, { [cls.stack]: isStack });
+  const artwork = (
+    <>
+      {isStack && (
+        <>
+          <img className={cls.image} src={cardImage} alt="" />
+          <img className={cls.image} src={cardImage} alt="" />
+        </>
+      )}
+      <img className={cls.image} src={cardImage} alt={`${suit}: ${name}`} />
+    </>
+  );
 
-
-
-  if (isFlipped) {
-    return (
-      <div className={cls.cardContainer} onClick={onClick}>
-        <img src={cardImage} className={classNames(cls.card, {}, [cls.cardBack])} alt="Card back" />
-        {isMultiple && <img src={cardImage} className={classNames(cls.card, {}, [cls.cardBack])} alt="Card back" />}
-        {isMultiple && <img src={cardImage} className={classNames(cls.card, {}, [cls.cardBack])} alt="Card back" />}
-      </div>
-    )
-  }
-
-  return (
-    <div className={classNames(cls.card)} onClick={onClick}>
-      <img src={cardImage} alt={`Game card`} />
-    </div>
+  return onClick ? (
+    <button type="button" className={cardClass} aria-label={label} disabled={disabled} onClick={onClick}>
+      {artwork}
+    </button>
+  ) : (
+    <div className={cardClass}>{artwork}</div>
   );
 });
 
